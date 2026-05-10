@@ -2,291 +2,230 @@
 
 A real-time mission control dashboard for OpenClaw multi-agent orchestration. Monitor agents, manage cron jobs, track costs, and view system health — all from a single pane of glass.
 
-![Screenshot](screenshots/dashboard.png)
-
-## Features
-
-### Tier 1 — Core Features
-- **Agent Status Dashboard** — Live status of all configured agents from OpenClaw Gateway
-- **System Health Monitor** — Disk, memory, CPU gauges with alert thresholds
-- **Cron Job Manager** — Visual management of scheduled tasks with run history
-- **Gateway Health Probes** — Liveness/readiness checks for OpenClaw Gateway
-
-### Tier 2 — Analytics & Management
-- **7-Column Kanban Board** — Drag-and-drop task management
-- **Real-Time Event Feed** — Live audit log with severity coloring
-- **Cost Analytics** — Per-model cost breakdown with daily trends
-- **Knowledge/Memory Explorer** — Search across memory database
-
-### Tier 3 — Intelligence & Integration
-- **Session Browser** — List/view all active sessions with message history
-- **Skill Manager** — View installed skills with details and documentation
-- **Gateway Config Editor** — Read/edit gateway config with schema hints
-- **Disk Usage Dashboard** — Interactive disk usage view with one-click cleanup
-- **Agent Conversation Viewer** — View full conversation history per agent
-- **Cron Job Editor** — Create/edit/delete cron jobs via UI
-- **Alert Rules Engine** — Define threshold-based alerts with Discord/Telegram delivery
-- **Memory Explorer** — Full-text search across MEMORY.md and daily files
-
 ---
 
-## Prerequisites
+## For Another Agent: End-to-End Setup Instructions
 
-Before running the portal, ensure you have:
+**Read this section first.** These steps are written so an AI agent can follow them without asking questions.
 
-| Requirement | Minimum | Notes |
-|-------------|---------|-------|
-| **OpenClaw** | v2026.5.x+ | Gateway must be running on port `18789` |
-| **OpenClaw CLI** | `openclaw` command available in PATH | Used by sessions, crons, and skills routes |
-| **Python** | 3.11+ | With pip for backend dependencies |
-| **Node.js** | 18+ | With npm for frontend build |
-| **SQLite** | 3.x | Default database (bundled with Python) |
+### Step 0: Discover Your Environment
 
-### Will It Work in My OpenClaw Environment?
-
-**Mostly yes, with minor adjustments.** The portal is built for a standard OpenClaw installation, but several paths are hardcoded to the original author's setup. You'll need to adjust these for your environment:
-
-| Hardcoded Path | Location | What to Change |
-|----------------|----------|----------------|
-| `GATEWAY_URL = "http://localhost:18789"` | `agents.py`, `crons.py`, `gateway.py` | Change to your Gateway URL |
-| `OPENCLAW_DIR = "/home/node/.openclaw"` | `agents.py`, `disk.py` | Change to your `$OPENCLAW_STATE_DIR` (default: `~/.openclaw`) |
-| `SKILLS_DIR = "/app/skills"` | `skills.py` | Change to your skills directory |
-| `config_path = "/home/node/.openclaw/openclaw.json"` | `config.py` | Change to your `openclaw.json` path |
-| `MEMORY_DIR = ~/.openclaw/workspace-main/memory` | `memory.py` | Change to your memory directory |
-| `QMD_DIR = "/home/node/.openclaw/qmd"` | `costs.py` | Change to your QMD directory (or remove if unused) |
-
-### Quick Portability Fix
-
-The fastest way to make it work in your environment:
+Before anything else, discover your OpenClaw setup:
 
 ```bash
-# Find and replace all hardcoded paths
-cd backend/app
-find . -name "*.py" -exec grep -l "/home/node" {} \;
-# Then edit each file to use your paths
-# Or set environment variables and update the code to read from env
+# Find your OpenClaw state directory (default: ~/.openclaw)
+OPENCLAW_DIR=$(dirname "$(openclaw --help 2>/dev/null | grep -oP '(?<=OPENCLAW_STATE_DIR=).+' | head -1 || echo "$HOME/.openclaw")")
+echo "OPENCLAW_DIR=$OPENCLAW_DIR"
+
+# Find your skills directory
+SKILLS_DIR=$(find "$OPENCLAW_DIR" -type d -name "skills" 2>/dev/null | head -1)
+echo "SKILLS_DIR=$SKILLS_DIR"
+
+# Find your config file
+CONFIG_FILE="$OPENCLAW_DIR/openclaw.json"
+echo "CONFIG_FILE=$CONFIG_FILE"
+
+# Find your memory directory (usually inside your workspace)
+MEMORY_DIR=$(find "$OPENCLAW_DIR" -name "MEMORY.md" -type f 2>/dev/null | head -1 | xargs dirname)
+echo "MEMORY_DIR=$MEMORY_DIR"
+
+# Verify Gateway is running on port 18789
+curl -s http://localhost:18789 -o /dev/null -w "%{http_code}"
+echo ""
 ```
 
-For a more robust solution, these paths should be configurable via environment variables (planned for v4.0).
+Save these values. You'll need them in Step 3.
 
----
-
-## Quick Start
-
-### 1. Clone the Repository
+### Step 1: Clone and Install
 
 ```bash
+# Clone the repository
 git clone https://github.com/sghomelab/openclaw-command-center.git
 cd openclaw-command-center
-```
 
-### 2. Adjust Paths (If Your Setup Differs)
-
-If your OpenClaw installation uses default paths, you can skip this step. Otherwise:
-
-```bash
-# Edit these files to match your environment:
-nano backend/app/api/routes/agents.py      # OPENCLAW_DIR, GATEWAY_URL
-nano backend/app/api/routes/crons.py       # GATEWAY_URL
-nano backend/app/api/routes/gateway.py     # GATEWAY_URL
-nano backend/app/api/routes/skills.py      # SKILLS_DIR
-nano backend/app/api/routes/config.py      # config_path
-nano backend/app/api/routes/disk.py        # OPENCLAW_DIR
-nano backend/app/api/routes/memory.py      # MEMORY_DIR
-nano backend/app/api/routes/costs.py       # QMD_DIR
-```
-
-### 3. Install Backend Dependencies
-
-```bash
+# Install Python dependencies
 cd backend
 pip install -r requirements.txt
-```
 
-### 4. Build the Frontend
-
-```bash
+# Install Node.js dependencies and build frontend
 cd ../frontend
 npm install
 npm run build
+
+cd ..
 ```
 
-### 5. Start the Portal
+### Step 2: Adjust Hardcoded Paths
+
+The code has paths hardcoded to the original author's setup. Replace them with your paths.
+
+**Run this single command to do all replacements at once** (substitute the variables from Step 0):
 
 ```bash
-cd ..
+cd backend/app/api/routes
+
+# Replace /home/node/.openclaw with your OPENCLAW_DIR
+find . -name "*.py" -exec sed -i "s|/home/node/.openclaw|$OPENCLAW_DIR|g" {} \;
+
+# Replace /home/node/.npm with your npm cache dir
+NPM_CACHE=$(npm config get cache)
+find . -name "*.py" -exec sed -i "s|/home/node/.npm|$NPM_CACHE|g" {} \;
+
+# Replace /app/skills with your skills dir
+sed -i "s|SKILLS_DIR = \"/app/skills\"|SKILLS_DIR = \"$SKILLS_DIR\"|" skills.py
+
+# Replace /home/node/.openclaw/workspace-main/memnew/claw-portal/backend/claw_portal.db
+# with your actual path
+sed -i "s|/home/node/.openclaw/workspace-main/memnew/claw-portal/backend/claw_portal.db|./claw_portal.db|" events.py
+```
+
+**Verify replacements are correct:**
+
+```bash
+# Check no remaining /home/node paths
+grep -rn "/home/node" .
+# Should return nothing. If it does, fix those files manually.
+
+# Check no remaining /app/skills
+grep -rn "/app/skills" .
+# Should return nothing. If it does, fix manually.
+```
+
+### Step 3: Verify Gateway Connection
+
+```bash
+# Test that the backend can reach the Gateway
+curl -s http://localhost:18789 | head -1
+# If this fails, your Gateway is not running on the default port 18789.
+# Find your Gateway port and update GATEWAY_URL in these files:
+#   agents.py, crons.py, gateway.py
+# Search for: GATEWAY_URL = "http://localhost:18789"
+```
+
+### Step 4: Start the Portal
+
+```bash
+cd /path/to/openclaw-command-center
 python3 start-portal.py
 ```
 
-The portal will be available at `http://localhost:5713`.
-
-### Default Login
-
-- **Username:** `admin`
-- **Password:** `admin123`
-
-### 6. Run Smoke Tests (Recommended)
-
-```bash
-bash test-portal.sh
-```
-
-Expected output: `PASS: All 23 tests passed — ready to deploy`
-
----
-
-## Architecture
-
-```
-Frontend (React + Vite)          Backend (FastAPI)
-├── pages/                       ├── api/routes/
-│   ├── Agents.jsx               │   ├── agents.py
-│   ├── Dashboard.jsx            │   ├── analytics.py
-│   ├── Crons.jsx                │   ├── costs.py
-│   ├── Events.jsx               │   ├── crons.py
-│   ├── CostAnalytics.jsx        │   ├── gateway.py
-│   ├── Sessions.jsx             │   ├── health.py
-│   ├── Skills.jsx               │   ├── sessions.py
-│   ├── ConfigEditor.jsx         │   ├── skills.py
-│   ├── DiskUsage.jsx            │   ├── config.py
-│   ├── MemoryExplorer.jsx       │   ├── disk.py
-│   ├── ConversationViewer.jsx   │   ├── memory.py
-│   ├── AlertsPage.jsx           │   ├── events.py
-│   └── CronEditor.jsx           │   └── alerts.py
-├── components/                  └── services/
-└── services/api.js
-```
-
----
-
-## Configuration
-
-The portal connects to OpenClaw Gateway via:
-- **Gateway URL:** `http://localhost:18789` (default)
+The portal starts on:
 - **Backend API:** `http://localhost:9000`
 - **Frontend SPA:** `http://localhost:5713`
 
-These ports are configurable in `start-portal.py` and `backend/app/config.py`.
+### Step 5: Login and Verify
+
+```bash
+# Test the login
+curl -s -X POST http://localhost:9000/v3/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | python3 -c "import sys,json; t=json.load(sys.stdin); print('OK' if 'access_token' in t else 'FAIL')"
+
+# Run smoke tests
+bash test-portal.sh
+# Expected: PASS: All 23 tests passed — ready to deploy
+```
+
+### Step 6: Access the Portal
+
+Open `http://localhost:5713` in a browser (or have a web-accessible agent navigate there).
+
+**Default credentials:** `admin` / `admin123`
+
+### Step 7: (Optional) Keep It Running
+
+Use `nohup` or a process manager:
+
+```bash
+# Simple: nohup
+nohup python3 start-portal.py > /tmp/portal.log 2>&1 &
+
+# Or use systemd, tmux, screen, etc.
+```
+
+### Troubleshooting During Setup
+
+| Problem | Fix |
+|---------|-----|
+| `start-portal.py` fails with "Address already in use" | `kill -9 $(lsof -t -i :5713)` then `kill -9 $(lsof -t -i :9000)` |
+| Login fails on frontend | Ensure `start-portal.py` is running (not `python3 -m http.server`) |
+| `openclaw sessions` returns error | Command is `openclaw sessions --all-agents --json` (not `list`) |
+| Skills list is empty | Check `SKILLS_DIR` in `skills.py` points to valid directory |
+| Config editor errors | Check `config_path` in `config.py` points to your `openclaw.json` |
+| Disk usage shows 0% | Check `OPENCLAW_DIR` in `disk.py` |
+| Sessions list is empty | Check CLI command in `sessions.py` uses `openclaw sessions --all-agents --json` |
 
 ---
 
-## Project Structure
+## For Human Readers
+
+### Features
+
+**Tier 1 — Core:** Agent Status Dashboard, System Health Monitor, Cron Job Manager, Gateway Health Probes
+
+**Tier 2 — Analytics:** 7-Column Kanban Board, Real-Time Event Feed, Cost Analytics, Knowledge/Memory Explorer
+
+**Tier 3 — Intelligence:** Session Browser, Skill Manager, Gateway Config Editor, Disk Usage Dashboard, Agent Conversation Viewer, Cron Job Editor, Alert Rules Engine, Memory Explorer
+
+### Project Structure
 
 ```
 openclaw-command-center/
-├── backend/
-│   ├── app/
-│   │   ├── api/routes/      # FastAPI route modules
-│   │   ├── models/          # SQLAlchemy models
-│   │   ├── services/        # Business logic
-│   │   └── main.py          # App entry point
-│   ├── requirements.txt
-│   └── run.py
-├── frontend/
-│   ├── src/
-│   │   ├── pages/           # Route components
-│   │   ├── components/      # Shared components
-│   │   ├── services/        # API client
-│   │   └── App.jsx          # Router
-│   ├── package.json
-│   └── vite.config.js
-├── start-portal.py          # Launcher script (proxies frontend → backend)
-├── nginx.portal.conf        # Nginx config (optional)
-├── test-portal.sh           # Smoke test script (run after every build)
-├── CLAW-PORTAL-PLAN.md      # Feature roadmap & implementation tracker
-├── CLAW-PORTAL-TEST-PLAN.md # Comprehensive test scenarios (25 cases)
-├── CLAW-PORTAL-RECOVERY.md  # Recovery procedures & implementation log
-└── README.md                # This file
+├── backend/app/api/routes/    # FastAPI route modules (agents.py, crons.py, sessions.py, etc.)
+├── frontend/src/pages/        # React page components (Agents.jsx, Crons.jsx, Sessions.jsx, etc.)
+├── start-portal.py            # Launcher (starts backend + frontend proxy)
+├── test-portal.sh             # Smoke tests (run after every build)
+├── CLAW-PORTAL-PLAN.md        # Feature roadmap & implementation tracker
+├── CLAW-PORTAL-TEST-PLAN.md   # 25 test scenarios
+├── CLAW-PORTAL-RECOVERY.md    # Bug fixes, workarounds, deployment log
+└── README.md                  # This file
 ```
 
-## Project Files
+### Configuration
 
-### `CLAW-PORTAL-PLAN.md` — Feature Roadmap
-Tracks all features across Tier 1, 2, and 3. Completed features are marked with `[x]` and moved to the "Completed" section. Use this to track what's been built and what's planned next.
-
-### `CLAW-PORTAL-TEST-PLAN.md` — Test Scenarios
-Documents 25 comprehensive test scenarios covering authentication, all tiers of features, proxy behavior, and build verification. Each scenario includes steps, expected outcomes, and UI/API verification details. Reference this for QA and manual testing.
-
-### `test-portal.sh` — Automated Smoke Tests
-Bash script that runs 23 automated API and proxy tests. Run this **after every build** to catch regressions before deployment. Exits with code 1 if any test fails. Covers:
-- Authentication (backend + proxy)
-- All Tier 1, 2, and 3 API endpoints
-- Data shape validation (cron count, skill count)
-- Proxy POST/GET forwarding
-- Frontend build verification
-
-### `CLAW-PORTAL-RECOVERY.md` — Implementation Log
-Records of bugs fixed, workarounds applied, and deployment procedures. Use this as a reference when troubleshooting similar issues. Includes:
-- API prefix fixes (`/v3/` routing)
-- Auth interceptor fixes
-- CLI-based cron listing workaround
-- Cron delivery channel configuration
-- Portal startup procedures
-
----
-
-## Customization
+| Setting | Default | Configurable In |
+|---------|---------|----------------|
+| Gateway URL | `http://localhost:18789` | `GATEWAY_URL` in `agents.py`, `crons.py`, `gateway.py` |
+| Backend port | `9000` | `backend/app/config.py` → `PORT` |
+| Frontend port | `5713` | `start-portal.py` → `FRONTEND_PORT` |
+| Default login | `admin` / `admin123` | Created on first startup in `main.py` |
 
 ### Adding New Pages
 
 1. Create `frontend/src/pages/YourPage.jsx`
-2. Add route in `frontend/src/App.jsx`:
-   ```js
-   import YourPage from './pages/YourPage';
-   // ...
-   yourpage: { component: YourPage, title: 'Your Page' },
-   ```
+2. Import and register in `frontend/src/App.jsx`
 3. Add sidebar link in `frontend/src/components/Sidebar.jsx`
-4. Rebuild: `cd frontend && npm run build`
-5. Run tests: `bash test-portal.sh`
+4. `cd frontend && npm run build`
+5. `bash test-portal.sh`
 
 ### Adding New API Routes
 
-1. Create `backend/app/api/routes/yourroute.py`
+1. Create `backend/app/api/routes/yourroute.py` with `router = APIRouter(prefix="/v3", tags=["Name"])`
 2. Register in `backend/app/main.py`:
    ```python
    from app.api.routes import yourroute
    app.include_router(yourroute.router)
    ```
 3. Backend auto-reloads via WatchFiles
-4. Run tests: `bash test-portal.sh`
+4. `bash test-portal.sh`
+
+### Hardcoded Paths
+
+The following paths in the code need updating for your environment:
+
+| Path | File(s) | What It's Used For |
+|------|---------|-------------------|
+| `OPENCLAW_DIR` | `agents.py`, `disk.py` | OpenClaw state directory |
+| `GATEWAY_URL` | `agents.py`, `crons.py`, `gateway.py` | Gateway REST API |
+| `SKILLS_DIR` | `skills.py` | Skills directory |
+| `config_path` | `config.py` | `openclaw.json` location |
+| `MEMORY_DIR` | `memory.py` | Memory files directory |
+| `QMD_DIR` | `costs.py` | QMD facts database |
+| `NPM_CACHE` | `disk.py` | npm cache directory |
+
+Use the "Step 2" automated replacement commands above, or edit each file manually.
 
 ---
-
-## Deployment Checklist
-
-Before deploying to production:
-
-- [ ] `bash test-portal.sh` passes all 23 tests
-- [ ] No secrets in git history (`git log --all --full-history -- "*.env" ".env"`)
-- [ ] `.gitignore` covers `.env/`, `node_modules/`, `__pycache__/`
-- [ ] Frontend built (`npm run build`)
-- [ ] Backend routes registered in `main.py`
-- [ ] New pages added to `App.jsx` and `Sidebar.jsx`
-- [ ] `CLAW-PORTAL-PLAN.md` updated with completed features
-
----
-
-## Troubleshooting
-
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| Login fails on frontend | Using `http.server` instead of `start-portal.py` | Kill old process, run `python3 start-portal.py` |
-| Port 5713 in use | Zombie process | `kill -9 $(lsof -t -i :5713)` |
-| Port 9000 in use | Old uvicorn process | `kill $(lsof -t -i :9000)` |
-| 404 on new routes | Route not registered in `main.py` | Add `app.include_router(newroute.router)` |
-| 401 on protected routes | Missing `Authorization` header | Include `Bearer <token>` header |
-| Cron jobs not showing | Gateway CLI not found | Verify `openclaw cron list --json` works |
-| Sessions list empty | CLI command wrong | Use `openclaw sessions --all-agents --json` |
-| Skills list empty | Skills dir path wrong | Update `SKILLS_DIR` in `skills.py` |
-| Config editor errors | Config path wrong | Update `config_path` in `config.py` |
-| Disk usage shows 0% | OpenClaw dir path wrong | Update `OPENCLAW_DIR` in `disk.py` |
-
----
-
-## Screenshots
-
-<!-- Add screenshots to screenshots/ directory -->
 
 ## License
 
