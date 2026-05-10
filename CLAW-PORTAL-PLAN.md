@@ -28,13 +28,22 @@
 
 ---
 
-## Completed (Tier 1 & 2)
+## Completed (Tier 1, 2 & 3)
 
 - [x] Agent Status Dashboard
 - [x] System Health Monitor
-- [x] Cron Job Manager (view-only)
+- [x] Cron Job Manager (view + editor)
 - [x] 7-Column Kanban Board
 - [x] Real-Time Event Feed
 - [x] Cost Analytics
 - [x] Gateway Health Probes
 - [x] Knowledge/Memory Explorer
+- [x] Session Browser (sessions + history)
+- [x] Skill Manager (list + details)
+- [x] Gateway Config Editor
+- [x] Disk Usage Dashboard (with cleanup)
+- [x] Agent Conversation Viewer
+- [x] Cron Job Editor (create/edit/delete)
+- [x] Alert Rules Engine
+- [x] Memory Explorer (search + file browser)
+- [x] Smoke Test Suite (23 tests)
