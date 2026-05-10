@@ -12,6 +12,11 @@ import Audit from './pages/Audit';
 import Settings from './pages/Settings';
 import Knowledge from './pages/Knowledge';
 import Calendar from './pages/Calendar';
+import Agents from './pages/Agents';
+import GatewayHealth from './pages/GatewayHealth';
+import Crons from './pages/Crons';
+import Events from './pages/Events';
+import CostAnalytics from './pages/CostAnalytics';
 
 const pages = {
   '': { component: Dashboard, title: 'Dashboard' },
@@ -25,6 +30,11 @@ const pages = {
   settings: { component: Settings, title: 'Settings' },
   knowledge: { component: Knowledge, title: 'Knowledge Graph' },
   calendar: { component: Calendar, title: 'Calendar & Scheduling' },
+  agents: { component: Agents, title: 'Agents' },
+  gateway: { component: GatewayHealth, title: 'Gateway Health' },
+  crons: { component: Crons, title: 'Cron Jobs' },
+  events: { component: Events, title: 'Event Feed' },
+  costs: { component: CostAnalytics, title: 'Cost Analytics' },
 };
 
 function PrivateRoute() {

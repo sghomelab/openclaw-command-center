@@ -1,7 +1,8 @@
 import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
-  FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar
+  FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
+  Users, Server, Clock
 } from 'lucide-react';
 
 const navItems = [
@@ -14,6 +15,9 @@ const navItems = [
   { label: 'Calendar', icon: Calendar, path: '#/calendar' },
   { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
   { label: 'Audit Logs', icon: FileText, path: '#/audit' },
+  { label: 'Agents', icon: Users, path: '#/agents' },
+  { label: 'Gateway Health', icon: Server, path: '#/gateway' },
+  { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
   { label: 'Settings', icon: Settings, path: '#/settings' },
 ];
 
