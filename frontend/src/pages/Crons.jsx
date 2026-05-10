@@ -15,7 +15,7 @@ export default function Crons() {
     setLoading(true);
     try {
       const r = await api.get('/crons');
-      setCrons(r.data || []);
+      setCrons(r.data?.jobs || r.data || []);
     } catch (e) { console.error('Failed to fetch crons', e); }
     setLoading(false);
   };

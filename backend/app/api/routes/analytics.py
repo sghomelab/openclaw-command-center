@@ -13,7 +13,7 @@ router = APIRouter(prefix="/v3/analytics", tags=["Analytics"])
 
 
 @router.get("/overview")
-async def overview(db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+async def overview(db: AsyncSession = Depends(get_db)):
     """High-level dashboard stats."""
     projects = (await db.execute(select(func.count(Project.id)))).scalar() or 0
     tasks = (await db.execute(select(func.count(Task.id)))).scalar() or 0

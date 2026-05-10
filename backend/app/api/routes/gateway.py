@@ -3,7 +3,7 @@ import subprocess
 import httpx
 from fastapi import APIRouter, HTTPException
 
-router = APIRouter()
+router = APIRouter(prefix="/v3", tags=["Gateway"])
 
 GATEWAY_URL = "http://localhost:18789"
 

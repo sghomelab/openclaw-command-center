@@ -102,3 +102,22 @@ Frontend (React + Vite)          Backend (FastAPI)
 | `frontend/src/components/Sidebar.jsx` | +6 | New nav links |
 
 - [Ongoing — updates will be appended here]
+
+- **2026-05-10 06:45 UTC** — **DEPLOYED & TESTED** ✅
+  - Frontend rebuilt (Vite, 360ms build, 731KB bundle)
+  - Backend restarted on port 9000, frontend on port 5713
+  - Fixed `/v3` prefix on agents, crons, costs routers
+  - All endpoints verified: health ✅, system health ✅, agents ✅, crons ✅, costs ✅
+  - Committed: `34b9758 fix: add /v3 prefix to agents, crons, costs routers`
+  - **Note:** Cron list shows 0 jobs — Gateway doesn't expose cron REST API yet (upstream limitation)
+  - Portal accessible at `http://localhost:5713`
+
+### Portal Status
+| Component | Status | Port |
+|-----------|--------|------|
+| Backend API | ✅ Running | 9000 |
+| Frontend SPA | ✅ Running | 5713 |
+| Disk Usage | ⚠️ 90% (alert at 85%) | — |
+| Memory | ✅ 14.5% used | — |
+| CPU | ✅ 0.3% | — |
+| Agents | ✅ 7 configured | — |
