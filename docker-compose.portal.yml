@@ -1,0 +1,39 @@
+# Claw Portal — separate from OpenClaw
+# Run: docker compose -f docker-compose.portal.yml up -d
+# Share the same workspace volume as OpenClaw
+
+version: "3.9"
+
+services:
+  claw-portal-api:
+    image: python:3.11-slim
+    container_name: claw-portal-api
+    restart: unless-stopped
+    volumes:
+      # Mount the same workspace OpenClaw uses (adjust path if different on your host)
+      - /home/node/.openclaw/workspace:/home/node/.openclaw/workspace
+    working_dir: /home/node/.openclaw/workspace/memnew/claw-portal/backend
+    command: >
+      bash -c "
+        pip install -r requirements.txt &&
+        python run.py
+      "
+    environment:
+      - BACKEND_PORT=9000
+    expose:
+      - "9000"
+    # No host port — nginx sits in front
+    # Note: OpenClaw gateway is a separate compose project, remove depends_on if it errors
+
+  claw-portal-web:
+    image: nginx:alpine
+    container_name: claw-portal-web
+    restart: unless-stopped
+    ports:
+      - "5713:80"
+    volumes:
+      # Build this first: cd frontend && npm run build
+      - /home/node/.openclaw/workspace/memnew/claw-portal/frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.portal.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - claw-portal-api
