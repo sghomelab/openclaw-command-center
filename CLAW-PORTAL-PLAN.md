@@ -6,17 +6,17 @@
 
 ## 🟢 High Impact (Build First)
 
-- [ ] **Session Browser** — List/view all active sessions (main, isolated, sub-agents) with message history and model info
-- [ ] **Skill Manager** — View installed skills, enable/disable, search ClawHub for new ones
-- [ ] **Gateway Config Editor** — Read/edit `config.yaml` from UI with schema validation
-- [ ] **Disk Usage Dashboard** — Interactive view of disk consumption by directory, with one-click cleanup
+- [x] **Session Browser** — List/view all active sessions (main, isolated, sub-agents) with message history and model info
+- [x] **Skill Manager** — View installed skills, enable/disable, search ClawHub for new ones
+- [x] **Gateway Config Editor** — Read/edit `config.yaml` from UI with schema validation
+- [x] **Disk Usage Dashboard** — Interactive view of disk consumption by directory, with one-click cleanup
 
 ## 🟡 Medium Impact
 
-- [ ] **Agent Conversation Viewer** — Click into any agent session and read its full message history
-- [ ] **Cron Job Editor** — Create/edit/delete cron jobs via UI (schedule, payload, delivery channel)
-- [ ] **Alert Rules Engine** — Define thresholds with Discord/Telegram delivery
-- [ ] **Memory Explorer** — Full-text search across MEMORY.md and daily files
+- [x] **Agent Conversation Viewer** — Click into any agent session and read its full message history
+- [x] **Cron Job Editor** — Create/edit/delete cron jobs via UI (schedule, payload, delivery channel)
+- [x] **Alert Rules Engine** — Define thresholds with Discord/Telegram delivery
+- [x] **Memory Explorer** — Full-text search across MEMORY.md and daily files
 
 ## 🔵 Stretch Goals
 
