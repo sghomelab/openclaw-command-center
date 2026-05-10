@@ -28,6 +28,49 @@ A real-time mission control dashboard for OpenClaw multi-agent orchestration. Mo
 - **Alert Rules Engine** — Define threshold-based alerts with Discord/Telegram delivery
 - **Memory Explorer** — Full-text search across MEMORY.md and daily files
 
+---
+
+## Prerequisites
+
+Before running the portal, ensure you have:
+
+| Requirement | Minimum | Notes |
+|-------------|---------|-------|
+| **OpenClaw** | v2026.5.x+ | Gateway must be running on port `18789` |
+| **OpenClaw CLI** | `openclaw` command available in PATH | Used by sessions, crons, and skills routes |
+| **Python** | 3.11+ | With pip for backend dependencies |
+| **Node.js** | 18+ | With npm for frontend build |
+| **SQLite** | 3.x | Default database (bundled with Python) |
+
+### Will It Work in My OpenClaw Environment?
+
+**Mostly yes, with minor adjustments.** The portal is built for a standard OpenClaw installation, but several paths are hardcoded to the original author's setup. You'll need to adjust these for your environment:
+
+| Hardcoded Path | Location | What to Change |
+|----------------|----------|----------------|
+| `GATEWAY_URL = "http://localhost:18789"` | `agents.py`, `crons.py`, `gateway.py` | Change to your Gateway URL |
+| `OPENCLAW_DIR = "/home/node/.openclaw"` | `agents.py`, `disk.py` | Change to your `$OPENCLAW_STATE_DIR` (default: `~/.openclaw`) |
+| `SKILLS_DIR = "/app/skills"` | `skills.py` | Change to your skills directory |
+| `config_path = "/home/node/.openclaw/openclaw.json"` | `config.py` | Change to your `openclaw.json` path |
+| `MEMORY_DIR = ~/.openclaw/workspace-main/memory` | `memory.py` | Change to your memory directory |
+| `QMD_DIR = "/home/node/.openclaw/qmd"` | `costs.py` | Change to your QMD directory (or remove if unused) |
+
+### Quick Portability Fix
+
+The fastest way to make it work in your environment:
+
+```bash
+# Find and replace all hardcoded paths
+cd backend/app
+find . -name "*.py" -exec grep -l "/home/node" {} \;
+# Then edit each file to use your paths
+# Or set environment variables and update the code to read from env
+```
+
+For a more robust solution, these paths should be configurable via environment variables (planned for v4.0).
+
+---
+
 ## Quick Start
 
 ### 1. Clone the Repository
@@ -37,22 +80,38 @@ git clone https://github.com/sghomelab/openclaw-command-center.git
 cd openclaw-command-center
 ```
 
-### 2. Install Backend Dependencies
+### 2. Adjust Paths (If Your Setup Differs)
+
+If your OpenClaw installation uses default paths, you can skip this step. Otherwise:
+
+```bash
+# Edit these files to match your environment:
+nano backend/app/api/routes/agents.py      # OPENCLAW_DIR, GATEWAY_URL
+nano backend/app/api/routes/crons.py       # GATEWAY_URL
+nano backend/app/api/routes/gateway.py     # GATEWAY_URL
+nano backend/app/api/routes/skills.py      # SKILLS_DIR
+nano backend/app/api/routes/config.py      # config_path
+nano backend/app/api/routes/disk.py        # OPENCLAW_DIR
+nano backend/app/api/routes/memory.py      # MEMORY_DIR
+nano backend/app/api/routes/costs.py       # QMD_DIR
+```
+
+### 3. Install Backend Dependencies
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 3. Build the Frontend
+### 4. Build the Frontend
 
 ```bash
-cd frontend
+cd ../frontend
 npm install
 npm run build
 ```
 
-### 4. Start the Portal
+### 5. Start the Portal
 
 ```bash
 cd ..
@@ -66,13 +125,15 @@ The portal will be available at `http://localhost:5713`.
 - **Username:** `admin`
 - **Password:** `admin123`
 
-### 5. Run Smoke Tests (Recommended)
+### 6. Run Smoke Tests (Recommended)
 
 ```bash
 bash test-portal.sh
 ```
 
 Expected output: `PASS: All 23 tests passed — ready to deploy`
+
+---
 
 ## Architecture
 
@@ -96,14 +157,18 @@ Frontend (React + Vite)          Backend (FastAPI)
 └── services/api.js
 ```
 
+---
+
 ## Configuration
 
 The portal connects to OpenClaw Gateway via:
-- **Gateway URL:** `http://localhost:18789`
+- **Gateway URL:** `http://localhost:18789` (default)
 - **Backend API:** `http://localhost:9000`
 - **Frontend SPA:** `http://localhost:5713`
 
-To change the gateway URL, edit `backend/app/api/routes/agents.py` and update the `GATEWAY_URL` constant.
+These ports are configurable in `start-portal.py` and `backend/app/config.py`.
+
+---
 
 ## Project Structure
 
@@ -125,7 +190,7 @@ openclaw-command-center/
 │   │   └── App.jsx          # Router
 │   ├── package.json
 │   └── vite.config.js
-├── start-portal.py          # Launcher script
+├── start-portal.py          # Launcher script (proxies frontend → backend)
 ├── nginx.portal.conf        # Nginx config (optional)
 ├── test-portal.sh           # Smoke test script (run after every build)
 ├── CLAW-PORTAL-PLAN.md      # Feature roadmap & implementation tracker
@@ -158,6 +223,8 @@ Records of bugs fixed, workarounds applied, and deployment procedures. Use this 
 - Cron delivery channel configuration
 - Portal startup procedures
 
+---
+
 ## Customization
 
 ### Adding New Pages
@@ -184,6 +251,8 @@ Records of bugs fixed, workarounds applied, and deployment procedures. Use this 
 3. Backend auto-reloads via WatchFiles
 4. Run tests: `bash test-portal.sh`
 
+---
+
 ## Deployment Checklist
 
 Before deploying to production:
@@ -196,15 +265,24 @@ Before deploying to production:
 - [ ] New pages added to `App.jsx` and `Sidebar.jsx`
 - [ ] `CLAW-PORTAL-PLAN.md` updated with completed features
 
+---
+
 ## Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
 | Login fails on frontend | Using `http.server` instead of `start-portal.py` | Kill old process, run `python3 start-portal.py` |
 | Port 5713 in use | Zombie process | `kill -9 $(lsof -t -i :5713)` |
+| Port 9000 in use | Old uvicorn process | `kill $(lsof -t -i :9000)` |
 | 404 on new routes | Route not registered in `main.py` | Add `app.include_router(newroute.router)` |
 | 401 on protected routes | Missing `Authorization` header | Include `Bearer <token>` header |
 | Cron jobs not showing | Gateway CLI not found | Verify `openclaw cron list --json` works |
+| Sessions list empty | CLI command wrong | Use `openclaw sessions --all-agents --json` |
+| Skills list empty | Skills dir path wrong | Update `SKILLS_DIR` in `skills.py` |
+| Config editor errors | Config path wrong | Update `config_path` in `config.py` |
+| Disk usage shows 0% | OpenClaw dir path wrong | Update `OPENCLAW_DIR` in `disk.py` |
+
+---
 
 ## Screenshots
 
