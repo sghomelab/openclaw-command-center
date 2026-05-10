@@ -100,35 +100,36 @@ export default function Crons() {
             </div>
           ) : (
             <table className="table">
-              <thead><tr><th>Name</th><th>Schedule</th><th>Command</th><th>Status</th><th>Last Run</th><th>Next Run</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Schedule</th><th>Target</th><th>Status</th><th>Last Run</th><th>Next Run</th><th>Errors</th><th></th></tr></thead>
               <tbody>
-                {crons.map(cron => (
+                {crons.map(cron => {
+                  const scheduleStr = typeof cron.schedule === 'string' ? cron.schedule : (cron.schedule?.expr || cron.schedule?.every || 'N/A');
+                  const isRunning = cron.state?.runningAtMs ? true : false;
+                  const lastError = cron.last_error || cron.state?.lastError;
+                  return (
                   <tr key={cron.id} className="group">
                     <td className="font-medium">{cron.name || 'Untitled'}</td>
-                    <td><code className="text-xs font-mono bg-bg-secondary px-2 py-0.5 rounded text-text-secondary">{cron.schedule || '*/5 * * * *'}</code></td>
-                    <td className="text-sm text-text-muted max-w-xs truncate">{cron.command || '—'}</td>
+                    <td><code className="text-xs font-mono bg-bg-secondary px-2 py-0.5 rounded text-text-secondary">{scheduleStr || '—'}</code></td>
+                    <td className="text-sm text-text-muted max-w-xs truncate">{cron.session_target || '—'}</td>
                     <td>
-                      <span className={`badge ${cron.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                        {cron.is_active ? 'Active' : 'Paused'}
+                      <span className={`badge ${cron.enabled ? 'badge-success' : (cron.session_target === 'isolated' ? 'badge-info' : 'badge-neutral')}`}>
+                        {cron.enabled ? (isRunning ? 'Running' : 'Active') : 'Paused'}
                       </span>
                     </td>
-                    <td className="text-text-muted text-xs">{formatDate(cron.last_run_at)}</td>
-                    <td className="text-text-muted text-xs">{formatDate(cron.next_run_at)}</td>
+                    <td className="text-text-muted text-xs">
+                      {cron.last_status === 'ok' ? '✅' : '❌'} {formatDate(cron.last_run)}
+                    </td>
+                    <td className="text-text-muted text-xs">{formatDate(cron.next_run)}</td>
+                    <td className="text-text-muted text-xs">{cron.consecutive_errors || 0}</td>
                     <td>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleToggle(cron)} className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-text-primary" title={cron.is_active ? 'Pause' : 'Resume'}>
-                          {cron.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </button>
                         <button onClick={() => handleRun(cron.id)} className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-accent-primary" title="Run Now">
                           <RefreshCw className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(cron.id)} className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-accent-danger" title="Delete">
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           )}
