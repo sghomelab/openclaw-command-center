@@ -14,13 +14,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    // On auth errors (401/403) or not found (404), return empty data
-    // instead of crashing the page. Pages use .then(r => setX(r.data)).
+    // Never suppress errors for auth endpoints — login/refresh need real errors
+    if (err.config?.url?.includes('/auth/')) {
+      return Promise.reject(err);
+    }
+
+    // For other endpoints, suppress auth errors gracefully so pages don't crash
     if (err.response?.status === 401 || err.response?.status === 403) {
-      if (window.location.hash === '#/login') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
       return Promise.resolve({ data: {}, status: 200 });
     }
     if (err.response?.status === 404) {
