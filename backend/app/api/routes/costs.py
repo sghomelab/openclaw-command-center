@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from fastapi import APIRouter
 
-router = APIRouter()
+router = APIRouter(prefix="/v3", tags=["Costs"])
 
 QMD_DIR = "/home/node/.openclaw/qmd"
 # QMD stores session data — we'll query the sessions table

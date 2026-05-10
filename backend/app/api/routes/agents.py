@@ -5,7 +5,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
 
-router = APIRouter()
+router = APIRouter(prefix="/v3", tags=["Agents"])
 
 OPENCLAW_DIR = "/home/node/.openclaw"
 CONFIG_PATH = os.path.join(OPENCLAW_DIR, "openclaw.json")

@@ -80,4 +80,25 @@ Frontend (React + Vite)          Backend (FastAPI)
 ## Progress Log
 
 - **2026-05-10 05:16 UTC** — Plan created. Beginning Tier 1 & 2 implementation.
+- **2026-05-10 06:27 UTC** — **Tier 1 & 2 COMPLETE** ✅
+  - Two parallel OpenCode workers built all 7 enhancements
+  - 1,400+ lines of code added across 12 files
+  - Committed: `42d7870 tier2: kanban board, event feed, cost analytics`
+  - All routes registered in App.jsx, sidebar updated with new nav links
+  - Next: rebuild frontend, restart backend, test endpoints
+
+### Completed Files
+| File | Lines Changed | Feature |
+|------|---------------|---------|
+| `backend/app/api/routes/health.py` | +106 | System health endpoint (disk/CPU/memory) |
+| `backend/app/api/routes/agents.py` | +84 | Live agent status from Gateway |
+| `frontend/src/pages/Agents.jsx` | +180 | Enhanced agent dashboard with actions |
+| `frontend/src/pages/GatewayHealth.jsx` | +207 | System metrics gauges + alert history |
+| `frontend/src/pages/Crons.jsx` | +139 | Cron job manager (new page) |
+| `frontend/src/pages/Tasks.jsx` | +371 | Kanban board rewrite |
+| `frontend/src/pages/Events.jsx` | +195 | Real-time event feed (new page) |
+| `frontend/src/pages/CostAnalytics.jsx` | +251 | Cost tracking charts (new page) |
+| `frontend/src/App.jsx` | +10 | Route registrations |
+| `frontend/src/components/Sidebar.jsx` | +6 | New nav links |
+
 - [Ongoing — updates will be appended here]

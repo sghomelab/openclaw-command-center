@@ -2,7 +2,7 @@
 import httpx
 from fastapi import APIRouter, HTTPException
 
-router = APIRouter()
+router = APIRouter(prefix="/v3", tags=["Crons"])
 
 GATEWAY_URL = "http://localhost:18789"
 
@@ -70,6 +70,42 @@ async def run_cron(job_id: str):
     if data is None:
         raise HTTPException(status_code=502, detail="Failed to trigger cron job — Gateway unreachable")
     return {"success": True, "job_id": job_id, "response": data}
+
+
+@router.post("/crons")
+async def create_cron(job: dict):
+    """Create a new cron job via Gateway."""
+    data = await _call_cron_api(method="POST", path="/api/v1/cron/jobs", json_body=job)
+    if data is None:
+        raise HTTPException(status_code=502, detail="Failed to create cron job — Gateway unreachable")
+    return data
+
+
+@router.post("/crons/{job_id}")
+async def toggle_cron(job_id: str, body: dict):
+    """Toggle cron job enabled/disabled via Gateway."""
+    patch = body
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.patch(f"{GATEWAY_URL}/api/v1/cron/jobs/{job_id}", json=patch)
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception:
+            pass
+    raise HTTPException(status_code=502, detail="Failed to update cron job — Gateway unreachable")
+
+
+@router.delete("/crons/{job_id}")
+async def delete_cron(job_id: str):
+    """Delete a cron job via Gateway."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.delete(f"{GATEWAY_URL}/api/v1/cron/jobs/{job_id}")
+            if resp.status_code == 200:
+                return {"success": True, "job_id": job_id}
+        except Exception:
+            pass
+    raise HTTPException(status_code=502, detail="Failed to delete cron job — Gateway unreachable")
 
 
 @router.get("/crons/{job_id}/runs")
