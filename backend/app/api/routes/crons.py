@@ -1,4 +1,10 @@
-"""Cron job management routes — interfaces with OpenClaw Gateway cron API."""
+"""Cron job management routes — reads from OpenClaw Gateway via CLI.
+
+The Gateway does not expose a public REST API for cron listing,
+so we use `openclaw cron list --json` to retrieve the data.
+"""
+import asyncio
+import json
 import httpx
 from fastapi import APIRouter, HTTPException
 
@@ -7,38 +13,28 @@ router = APIRouter(prefix="/v3", tags=["Crons"])
 GATEWAY_URL = "http://localhost:18789"
 
 
-async def _call_cron_api(method: str = "GET", path: str = "/api/v1/cron/jobs", json_body=None, include_disabled: bool = False) -> dict | list | None:
-    """Call the Gateway cron API."""
+async def _list_crons_cli(include_disabled: bool = False) -> list:
+    """List cron jobs via openclaw CLI."""
     try:
-        params = {}
+        cmd = ["openclaw", "cron", "list", "--json"]
         if include_disabled:
-            params["includeDisabled"] = "true"
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            if method == "GET":
-                resp = await client.get(f"{GATEWAY_URL}{path}", params=params)
-            elif method == "POST":
-                resp = await client.post(f"{GATEWAY_URL}{path}", json=json_body)
-            if resp.status_code == 200:
-                return resp.json()
+            cmd.append("--include-disabled")
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode == 0:
+            data = json.loads(stdout)
+            return data.get("jobs", [])
     except Exception:
         pass
-    return None
+    return []
 
 
 @router.get("/crons")
 async def list_crons(include_disabled: bool = False):
     """List all cron jobs with status, schedule, and run history."""
-    data = await _call_cron_api(include_disabled=include_disabled)
-    if data is None:
-        # Fallback — try listing without includeDisabled
-        data = await _call_cron_api()
-
-    if isinstance(data, dict) and "jobs" in data:
-        jobs = data["jobs"]
-    elif isinstance(data, list):
-        jobs = data
-    else:
-        jobs = []
+    jobs = await _list_crons_cli(include_disabled=include_disabled)
 
     result = []
     for job in jobs:
