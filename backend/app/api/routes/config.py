@@ -30,10 +30,16 @@ async def _run_gateway_config(action: str, *args) -> dict:
 @router.get("/config")
 async def get_config():
     """Get current gateway config as JSON."""
-    result = await _run_gateway_config("get")
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-    return result
+    # Read openclaw.json directly since gateway CLI has limited subcommands
+    import json as j
+    config_path = "/home/node/.openclaw/openclaw.json"
+    try:
+        with open(config_path) as f:
+            return j.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="openclaw.json not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/config/schema")
