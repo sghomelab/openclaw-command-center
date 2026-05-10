@@ -2,22 +2,29 @@ import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
-  Users, Server, Clock
+  Users, Server, Clock, HardDrive, MessageSquare, Eye, Search
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '#/' },
-  { label: 'Alerts', icon: AlertTriangle, path: '#/alerts' },
+  { label: 'Alert Rules', icon: AlertTriangle, path: '#/alerts' },
   { label: 'Tasks', icon: CheckSquare, path: '#/tasks' },
   { label: 'Projects', icon: FolderKanban, path: '#/projects' },
   { label: 'Workflows', icon: Workflow, path: '#/workflows' },
   { label: 'Knowledge', icon: Brain, path: '#/knowledge' },
+  { label: 'Memory', icon: Brain, path: '#/memory' },
   { label: 'Calendar', icon: Calendar, path: '#/calendar' },
   { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
   { label: 'Audit Logs', icon: FileText, path: '#/audit' },
   { label: 'Agents', icon: Users, path: '#/agents' },
+  { label: 'Sessions', icon: Eye, path: '#/sessions' },
+  { label: 'Conversations', icon: MessageSquare, path: '#/conversations' },
   { label: 'Gateway Health', icon: Server, path: '#/gateway' },
   { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
+  { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
+  { label: 'Skills', icon: Puzzle, path: '#/skills' },
+  { label: 'Config Editor', icon: Settings, path: '#/config' },
+  { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
   { label: 'Settings', icon: Settings, path: '#/settings' },
 ];
 

@@ -48,6 +48,11 @@ from app.api.routes import (
     agents,
     costs,
     crons,
+    sessions,
+    skills,
+    config,
+    disk,
+    memory,
 )
 
 
@@ -200,6 +205,11 @@ app.include_router(gateway.router)
 app.include_router(agents.router)
 app.include_router(costs.router)
 app.include_router(crons.router)
+app.include_router(sessions.router)
+app.include_router(skills.router)
+app.include_router(config.router)
+app.include_router(disk.router)
+app.include_router(memory.router)
 
 
 # Root endpoint
