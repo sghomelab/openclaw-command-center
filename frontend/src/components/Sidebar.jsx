@@ -29,8 +29,14 @@ const navItems = [
   { label: 'Sessions', icon: Eye, path: '#/sessions' },
   { label: 'Conversations', icon: MessageSquare, path: '#/conversations' },
   { label: 'Gateway Health', icon: Server, path: '#/gateway' },
-  { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
-  { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
+  {
+    label: 'Cron',
+    icon: Clock,
+    children: [
+      { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
+      { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
+    ],
+  },
   { label: 'Skills', icon: Puzzle, path: '#/skills' },
   { label: 'Config Editor', icon: Settings, path: '#/config' },
   { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
