@@ -41,12 +41,19 @@ The Claw Portal is a React SPA (frontend) + FastAPI backend (port 9000) with SQL
 
 ### Tier 3 — Advanced (Future)
 
-| # | Feature | Details |
-|---|---------|---------|
-| 3.1 | Approval Workflow Panel | Queue of actions awaiting human approval, audit trail |
-| 3.2 | Discord Integration View | Recent messages per channel, agent-to-agent communication log |
-| 3.3 | Configuration Governance | View/edit openclaw.json, config diff/rollback, schema validation |
-| 3.4 | Memory Explorer Upgrade | Fact count visualization, extraction success rates, cross-corpus search |
+| # | Feature | Status | Details |
+|---|---------|--------|---------|
+| 3.1 | Approval Workflow Panel | 📋 Planned | Queue of actions awaiting human approval, audit trail |
+| 3.2 | Discord Integration View | 📋 Planned | Recent messages per channel, agent-to-agent communication log |
+| 3.3 | Configuration Governance | 📝 Planning | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
+| 3.4 | Memory Explorer Upgrade | 📋 Planned | Fact count visualization, extraction success rates, cross-corpus search |
+
+**3.3 Configuration Governance** — implementation plan created at `docs/CONFIG-GOVERNANCE-PLAN.md` (2026-05-11)
+- 4 phases, ~1,000 lines, 6-10 hours estimated
+- Phase 1: Config history & backup
+- Phase 2: Schema validation
+- Phase 3: Audit trail
+- Phase 4: Multi-agent config view
 
 ---
 
