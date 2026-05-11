@@ -99,6 +99,53 @@ else
 fi
 TOTAL=$((TOTAL + 1))
 
+# Monitoring
+echo ""
+echo "Monitoring"
+check "Monitoring system" "$(curl -s -o /dev/null -w '%{http_code}' $BACKEND/v3/monitoring/system)" "200"
+check "Monitoring openclaw" "$(curl -s -o /dev/null -w '%{http_code}' $BACKEND/v3/monitoring/openclaw)" "200"
+check "Monitoring summary" "$(curl -s -o /dev/null -w '%{http_code}' $BACKEND/v3/monitoring/summary)" "200"
+
+# Verify monitoring data shape
+MONITOR_SYSTEM=$(curl -s $BACKEND/v3/monitoring/system | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+has_disk = 'disk' in d and d['disk'] is not None
+has_memory = 'memory' in d and d['memory'] is not None
+has_cpu = 'cpu' in d and d['cpu'] is not None
+has_load = 'load' in d and d['load'] is not None
+has_uptime = 'uptime' in d and d['uptime'] is not None
+print('ok' if all([has_disk, has_memory, has_cpu, has_load, has_uptime]) else 'missing')
+" 2>/dev/null)
+if [[ "$MONITOR_SYSTEM" == "ok" ]]; then
+  echo "  [PASS] System metrics: disk, memory, cpu, load, uptime"
+  PASS=$((PASS + 1))
+else
+  echo "  [FAIL] System metrics incomplete"
+  FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+MONITOR_OC=$(curl -s $BACKEND/v3/monitoring/openclaw | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+has_sessions = 'sessions' in d and isinstance(d['sessions'], int)
+has_crons = 'crons' in d and d['crons'] is not None
+has_backups = 'backups' in d
+print('ok' if all([has_sessions, has_crons, has_backups]) else 'missing')
+" 2>/dev/null)
+if [[ "$MONITOR_OC" == "ok" ]]; then
+  echo "  [PASS] OpenClaw metrics: sessions, crons, backups"
+  PASS=$((PASS + 1))
+else
+  echo "  [FAIL] OpenClaw metrics incomplete"
+  FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# Backups
+check "Backup status" "$(curl -s -o /dev/null -w '%{http_code}' $BACKEND/v3/backups/status)" "200"
+
 # Proxy POST
 echo ""
 echo "Proxy"

@@ -19,7 +19,14 @@ const COLORS = {
 };
 
 function formatBytes(bytes) {
-  if (!bytes) return '0 B';
+  // Handle string values like "1.9T", "117G" from df output
+  if (typeof bytes === 'string') {
+    const match = bytes.match(/([\d.]+)([KMGTP]?[B]?)/i);
+    if (match) return `${match[1]} ${match[2]}`;
+    return bytes;
+  }
+  // Handle numeric values
+  if (!bytes || typeof bytes !== 'number') return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   while (bytes >= 1024 && i < units.length - 1) {
