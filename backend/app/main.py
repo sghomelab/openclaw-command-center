@@ -60,6 +60,7 @@ from app.api.routes import (
     monitoring,
 )
 from app.api.routes.config_history import router as config_history_router
+from app.api.routes.multi_agent_config import router as multi_agent_router
 
 
 @asynccontextmanager
@@ -221,6 +222,7 @@ app.include_router(wiki.router)
 app.include_router(backups.router)
 app.include_router(monitoring.router)
 app.include_router(config_history_router)
+app.include_router(multi_agent_router)
 
 
 # Root endpoint

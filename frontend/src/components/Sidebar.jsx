@@ -63,6 +63,7 @@ const navItems = [
       { label: 'Config Editor', icon: Settings, path: '#/config' },
       { label: 'Config History', icon: History, path: '#/confighistory' },
       { label: 'Config Audit', icon: FileText, path: '#/configaudit' },
+      { label: 'Multi-Agent View', icon: Users, path: '#/multiagent' },
       { label: 'Skills', icon: Puzzle, path: '#/skills' },
       { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
     ],

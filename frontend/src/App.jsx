@@ -30,6 +30,7 @@ import Backups from './pages/Backups';
 import Monitoring from './pages/Monitoring';
 import ConfigHistory from './pages/ConfigHistory';
 import ConfigAudit from './pages/ConfigAudit';
+import MultiAgentConfig from './pages/MultiAgentConfig';
 
 const pages = {
   '': { component: Dashboard, title: 'Dashboard' },
@@ -60,6 +61,7 @@ const pages = {
   monitoring: { component: Monitoring, title: 'Monitoring Dashboard' },
   confighistory: { component: ConfigHistory, title: 'Config History' },
   configaudit: { component: ConfigAudit, title: 'Config Audit' },
+  multiagent: { component: MultiAgentConfig, title: 'Multi-Agent Config' },
 };
 
 function PrivateRoute() {
