@@ -45,7 +45,7 @@ The Claw Portal is a React SPA (frontend) + FastAPI backend (port 9000) with SQL
 |---|---------|--------|---------|
 | 3.1 | Approval Workflow Panel | 📋 Planned | Queue of actions awaiting human approval, audit trail |
 | 3.2 | Discord Integration View | 📋 Planned | Recent messages per channel, agent-to-agent communication log |
-| 3.3 | Configuration Governance | 🚧 In Progress (Phase 1 ✅) | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
+| 3.3 | Configuration Governance | 🚧 In Progress (Phase 1 ✅, Phase 2 ✅) | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
 | 3.4 | Memory Explorer Upgrade | 📋 Planned | Fact count visualization, extraction success rates, cross-corpus search |
 
 **3.3 Configuration Governance** — implementation plan created at `docs/CONFIG-GOVERNANCE-PLAN.md` (2026-05-11)
@@ -168,6 +168,36 @@ Frontend (React + Vite)          Backend (FastAPI)
   - Total: 29 smoke tests, 0 failures
   - Committed: `f0ad4db fix(v4.7.0): fix Monitoring.jsx blank page — formatBytes() handles string disk values; add 7 test cases`
   - Pushed to `origin/master` ✅
+
+- **2026-05-11 09:58 UTC** — **v5.1.0: Schema Validation (Phase 2)** ✅
+  - Config validator service with 15+ validation rules:
+    - Type checking (string, int, bool, dict, list)
+    - Allowed value lists (gateway.auth.mode, gateway.mode, etc.)
+    - Range checks (min/max for ports, tokens, shares)
+    - Pattern matching (heartbeat interval regex)
+    - Empty credential detection
+    - String length limits
+  - Validation API endpoints:
+    - `POST /v3/config/validate` — validate single path/value
+    - `POST /v3/config/validate/diff` — validate proposed changes vs current
+    - `POST /v3/config/validate/full` — validate entire config dict
+    - `GET /v3/config/validation-rules` — expose rules to frontend
+  - ConfigEditor.jsx upgraded:
+    - Real-time debounced validation (300ms delay)
+    - Inline error tooltips on invalid fields
+    - Color-coded input borders (red=error, amber=modified)
+    - Save button disabled when validation errors exist
+    - Pre-save validation blocks invalid changes
+    - Validation status indicators (check/x/spinner icons)
+  - Committed: `544e3a0 feat(v5.1.0)`
+  - Pushed to `origin/master` ✅
+
+### Completed Files (Phase 2 — v5.1.0)
+| File | Lines Changed | Feature |
+|------|---------------|---------|
+| `backend/app/services/config_validator.py` | +230 | Schema validation engine with 15+ rules |
+| `backend/app/api/routes/config.py` | +80 | Validation endpoints, rule exposure |
+| `frontend/src/pages/ConfigEditor.jsx` | +140 | Real-time validation UI, debounced checks |
 
 - **2026-05-11 09:54 UTC** — **v5.0.0: Config History & Backup (Phase 1)** ✅
   - ConfigSnapshot model — tracks every config change with rollback capability
