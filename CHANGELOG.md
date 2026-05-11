@@ -4,6 +4,35 @@ All notable changes to OpenClaw Command Center.
 
 ---
 
+## v4.5.0 — 2026-05-11
+**Grafana-like monitoring dashboard integrated into Mission Control**
+
+### Added
+- `Monitoring.jsx` — full dashboard with system + OpenClaw metrics
+- `monitoring.py` — backend routes for system metrics (disk, memory, CPU, load, uptime) and OpenClaw metrics (sessions, cron jobs, backups)
+- SVG gauge charts for disk and memory usage visualization
+- Auto-refresh every 30 seconds
+- Health status indicators (Healthy/Warning/Critical) with color-coded alerts
+- Load averages display (1m, 5m, 15m)
+- Cron job health summary
+- Backup status card
+
+### Backend Routes
+- `GET /v3/monitoring/system` — disk, memory, CPU, load averages, uptime
+- `GET /v3/monitoring/openclaw` — sessions count, cron stats, backup info
+- `GET /v3/monitoring/summary` — combined metrics
+- `GET /v3/monitoring/history` — placeholder for Prometheus integration
+
+---
+
+## v4.4.0 — 2026-05-11
+**Add CHANGELOG.md with full version history**
+
+### Added
+- `CHANGELOG.md` documenting all versions from v1.0.0 → v4.3.0
+
+---
+
 ## v4.3.0 — 2026-05-11
 **Sidebar restructure — 6 collapsible groups for ease of use**
 
