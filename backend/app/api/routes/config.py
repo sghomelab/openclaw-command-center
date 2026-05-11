@@ -16,6 +16,7 @@ from app.services.config_validator import (
     validate_full_config,
     validate_diff,
 )
+from app.services.config_audit import record_config_change
 
 router = APIRouter(prefix="/v3", tags=["Config"])
 
@@ -166,15 +167,26 @@ async def patch_config(
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode == 0:
+            # Record audit with before/after diff
+            audit_record = record_config_change(
+                action="config_patched",
+                user=user,
+                reason=reason,
+                old_config=current_config,
+                change_path=config_path,
+            )
+            
             # Create audit log
             audit = AuditLog(
                 action="config_patched",
                 resource="config",
                 details=json.dumps({
                     "path": config_path,
-                    "value": str(value)[:500],  # Truncate long values
+                    "value": str(value)[:500],
                     "user": user,
-                    "reason": reason
+                    "reason": reason,
+                    "diff_summary": audit_record.get("changes", []),
+                    "total_changes": audit_record.get("total_changes", 0),
                 }),
                 user=user
             )
@@ -226,6 +238,15 @@ async def patch_full_config(
                 json.dump(current_config, f, indent=2)
         raise HTTPException(status_code=500, detail=f"Failed to write config: {str(e)}")
     
+    # Record audit with before/after diff
+    audit_record = record_config_change(
+        action="config_replaced",
+        user=user,
+        reason=reason,
+        old_config=current_config,
+        new_config=config,
+    )
+    
     # Create audit log
     audit = AuditLog(
         action="config_replaced",
@@ -233,7 +254,9 @@ async def patch_full_config(
         details=json.dumps({
             "user": user,
             "reason": reason,
-            "keys_changed": list(config.keys())
+            "keys_changed": list(config.keys()),
+            "diff_summary": audit_record.get("changes", []),
+            "total_changes": audit_record.get("total_changes", 0),
         }),
         user=user
     )

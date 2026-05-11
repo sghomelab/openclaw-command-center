@@ -10,30 +10,41 @@ export default function ConfigAudit() {
   const [actionFilter, setActionFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState(null);
   const pageSize = 25;
 
   useEffect(() => {
     loadAuditLogs();
+    loadStats();
   }, [currentPage, userFilter, actionFilter]);
 
   const loadAuditLogs = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        offset: (currentPage - 1) * pageSize,
         limit: pageSize,
       });
       
       if (userFilter) params.set('user', userFilter);
       if (actionFilter) params.set('action', actionFilter);
+      params.set('days', '30');
       
-      const res = await api.get(`/audit/logs?${params}`);
-      setAuditLogs(res.data.logs || res.data);
-      setTotalPages(Math.ceil((res.data.total || auditLogs.length) / pageSize));
+      const res = await api.get(`/config/audit?${params}`);
+      setAuditLogs(res.data.logs || res.data.logs || []);
+      setTotalPages(Math.ceil((res.data.total || res.data.logs?.length || 0) / pageSize));
     } catch (e) {
       console.error('Failed to load audit logs:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const res = await api.get('/config/audit/stats');
+      setStats(res.data);
+    } catch (e) {
+      console.error('Failed to load stats:', e);
     }
   };
 
@@ -75,13 +86,8 @@ export default function ConfigAudit() {
     URL.revokeObjectURL(url);
   };
 
-  // Filter logs by config actions
-  const configLogs = auditLogs.filter(log => 
-    log.resource_type === 'config' || 
-    log.action?.includes('config') ||
-    log.action?.includes('patched') ||
-    log.action?.includes('restored')
-  ).filter(log => {
+  // Filter logs by search
+  const configLogs = auditLogs.filter(log => {
     if (search) {
       const searchLower = search.toLowerCase();
       return (
@@ -165,19 +171,19 @@ export default function ConfigAudit() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
           <div className="text-sm text-text-muted">Config Changes</div>
-          <div className="text-2xl font-bold">{configLogs.length}</div>
+          <div className="text-2xl font-bold">{stats?.total_changes || configLogs.length}</div>
         </div>
         <div className="card p-4">
           <div className="text-sm text-text-muted">Unique Users</div>
-          <div className="text-2xl font-bold">{new Set(configLogs.map(l => l.user)).size}</div>
+          <div className="text-2xl font-bold">{stats ? Object.keys(stats.by_user || {}).length : new Set(configLogs.map(l => l.user || 'unknown')).size}</div>
         </div>
         <div className="card p-4">
           <div className="text-sm text-text-muted">Patches</div>
-          <div className="text-2xl font-bold">{configLogs.filter(l => l.action?.includes('patched')).length}</div>
+          <div className="text-2xl font-bold">{stats?.by_action?.config_patched || configLogs.filter(l => l.action?.includes('patched')).length}</div>
         </div>
         <div className="card p-4">
           <div className="text-sm text-text-muted">Restores</div>
-          <div className="text-2xl font-bold">{configLogs.filter(l => l.action?.includes('restored')).length}</div>
+          <div className="text-2xl font-bold">{stats?.by_action?.config_restored || configLogs.filter(l => l.action?.includes('restored')).length}</div>
         </div>
       </div>
 

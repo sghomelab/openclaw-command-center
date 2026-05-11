@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.config_history import ConfigSnapshot
 from app.models.audit import AuditLog
+from app.services.config_audit import get_recent_changes
 
 router = APIRouter(prefix="/v3", tags=["Config History"])
 
@@ -281,36 +282,69 @@ async def delete_snapshot(snapshot_id: int, db: AsyncSession = Depends(get_db)):
     return {"success": True, "deleted_id": snapshot_id}
 
 
-@router.get("/config/history/stats")
-async def get_history_stats(db: AsyncSession = Depends(get_db)):
-    """Get config history statistics."""
-    # Total snapshots
-    result = await db.execute(select(ConfigSnapshot))
-    all_snapshots = result.scalars().all()
+@router.get("/config/audit")
+async def get_config_audit(
+    limit: int = 50,
+    user: str = None,
+    days: int = None,
+    action: str = None,
+):
+    """Get config audit log with filtering."""
+    changes = get_recent_changes(limit=limit * 2)  # Fetch extra for filtering
     
-    # Snapshots per user
-    user_counts = {}
-    for s in all_snapshots:
-        user_counts[s.user] = user_counts.get(s.user, 0) + 1
+    # Apply filters
+    if user:
+        changes = [c for c in changes if c.get("user") == user or c.get("user_id") == user]
     
-    # Snapshots per day (last 7 days)
-    daily_counts = {}
-    for i in range(7):
-        day = datetime.now(timezone.utc) - timedelta(days=i)
-        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        result = await db.execute(
-            select(ConfigSnapshot).where(
-                ConfigSnapshot.timestamp >= day_start,
-                ConfigSnapshot.timestamp < day_end
-            )
-        )
-        daily_counts[day.strftime("%Y-%m-%d")] = len(result.scalars().all())
+    if action:
+        changes = [c for c in changes if action in c.get("action", "")]
+    
+    if days:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        changes = [c for c in changes if datetime.fromisoformat(c.get("timestamp", "").replace("+00:00", "+00:00")) >= cutoff]
+    
+    # Limit after filtering
+    changes = changes[:limit]
     
     return {
-        "total_snapshots": len(all_snapshots),
-        "per_user": user_counts,
-        "daily_last_7_days": daily_counts,
-        "oldest_snapshot": all_snapshots[-1].timestamp.isoformat() if all_snapshots else None,
-        "newest_snapshot": all_snapshots[0].timestamp.isoformat() if all_snapshots else None,
+        "logs": changes,
+        "total": len(changes),
+        "filters": {
+            "user": user,
+            "action": action,
+            "days": days,
+        }
+    }
+
+
+@router.get("/config/audit/stats")
+async def get_config_audit_stats():
+    """Get config audit statistics."""
+    changes = get_recent_changes(limit=200)
+    
+    # Count by action
+    action_counts = {}
+    user_counts = {}
+    daily_counts = {}
+    
+    for change in changes:
+        action = change.get("action", "unknown")
+        action_counts[action] = action_counts.get(action, 0) + 1
+        
+        user = change.get("user", change.get("user_id", "unknown"))
+        user_counts[user] = user_counts.get(user, 0) + 1
+        
+        ts = change.get("timestamp", "")
+        if ts:
+            try:
+                day = datetime.fromisoformat(ts.replace("+00:00", "+00:00")).strftime("%Y-%m-%d")
+                daily_counts[day] = daily_counts.get(day, 0) + 1
+            except (ValueError, TypeError):
+                pass
+    
+    return {
+        "total_changes": len(changes),
+        "by_action": action_counts,
+        "by_user": user_counts,
+        "by_day": dict(sorted(daily_counts.items(), reverse=True)[:7]),
     }
