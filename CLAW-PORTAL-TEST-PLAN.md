@@ -2,7 +2,7 @@
 
 > **Purpose:** Document all test scenarios, expected outcomes, and verification steps for the Claw Portal.
 > **Run after:** Every code change, build, or deployment.
-> **Automated script:** `test-portal.sh` (23 automated checks)
+> **Automated script:** `test-portal.sh` (29 automated checks)
 > **Manual tests:** See sections below for UI verification steps.
 
 ---
@@ -67,7 +67,13 @@ bash test-portal.sh
 | 20 | Proxy POST | POST | `5713/v3/auth/login` | 200 |
 | 21 | Proxy GET | GET | `5713/v3/agents` | 200 |
 | 22 | Cron count | — | — | `total >= 1` |
-| 23 | Build check | — | `frontend/dist/index.html` | File exists |
+| 23 | Monitoring system | GET | `/v3/monitoring/system` | 200 |
+| 24 | Monitoring openclaw | GET | `/v3/monitoring/openclaw` | 200 |
+| 25 | Monitoring summary | GET | `/v3/monitoring/summary` | 200 |
+| 26 | System metrics shape | — | — | disk, memory, cpu, load, uptime present |
+| 27 | OpenClaw metrics shape | — | — | sessions, crons, backups present |
+| 28 | Backup status | GET | `/v3/backups/status` | 200 |
+| 29 | Build check | — | `frontend/dist/index.html` | File exists |
 
 ---
 
@@ -204,20 +210,36 @@ bash test-portal.sh
 - **Verify:** New job appears in list after creation, delete removes it
 - **UI:** Job list with action buttons (run, edit, view, delete), create/edit modal
 
+### Test 21: Monitoring Dashboard (`#/monitoring`)
+- **API:** GET `/v3/monitoring/system` — disk, memory, CPU, load averages, uptime
+- **API:** GET `/v3/monitoring/openclaw` — sessions count, cron stats, backup info
+- **API:** GET `/v3/monitoring/summary` — combined system + OpenClaw metrics
+- **Expected:** Returns real-time metrics with proper data shapes
+- **Verify:** All metrics present (disk, memory, cpu, load, uptime, sessions, crons, backups)
+- **UI:** 4 system metric cards, load averages, 3 OpenClaw metric cards, disk/memory gauges, cron health summary, system health status indicators
+- **Auto-refresh:** Dashboard auto-refreshes every 30 seconds
+- **Health thresholds:** Disk >95%=critical, >85%=warning; Memory >90%=critical, >75%=warning; CPU >90%=critical, >75%=warning
+
+### Test 22: Backup Status (`#/backups`)
+- **API:** GET `/v3/backups/status` — backup files, log entries, retention info
+- **Expected:** Returns total backups count, total size, latest backup info, file list
+- **Verify:** Files list contains `.tar.gz` files with dates, sizes, verified status
+- **UI:** 4 summary cards, backup files table, expandable log viewer, configuration panel
+
 ---
 
 ## Frontend Proxy
 
-### Test 21: Proxy forwards GET requests
+### Test 23: Proxy forwards GET requests
 - **Steps:** GET `http://localhost:5713/v3/health`
 - **Expected:** `200 OK` (proxy forwards to backend port 9000)
 
-### Test 22: Proxy forwards POST requests
+### Test 24: Proxy forwards POST requests
 - **Steps:** POST `http://localhost:5713/v3/auth/login` with credentials
 - **Expected:** `200 OK` with JWT token
 - **Critical:** This is the login path — if POST fails, users cannot login
 
-### Test 23: Proxy returns SPA for root path
+### Test 25: Proxy returns SPA for root path
 - **Steps:** GET `http://localhost:5713/`
 - **Expected:** `200 OK` with HTML content (React SPA)
 
@@ -225,12 +247,12 @@ bash test-portal.sh
 
 ## Build Verification
 
-### Test 24: Frontend build artifacts exist
+### Test 26: Frontend build artifacts exist
 - **Check:** `frontend/dist/index.html` exists
 - **Check:** `frontend/dist/assets/` contains JS and CSS bundles
 - **Expected:** Build timestamp matches recent commit time
 
-### Test 25: Backend starts without errors
+### Test 27: Backend starts without errors
 - **Steps:** Run `python3 start-portal.py`
 - **Expected:** Both backend (9000) and frontend proxy (5713) start
 - **Verify:** No import errors, all routes registered
@@ -241,7 +263,7 @@ bash test-portal.sh
 
 Before pushing to production:
 
-- [ ] `bash test-portal.sh` passes all 23 tests
+- [ ] `bash test-portal.sh` passes all 29 tests
 - [ ] No secrets in git history (`git log --all --full-history -- "*.env" ".env"`)
 - [ ] `.gitignore` covers `.env/`, `node_modules/`, `__pycache__/`
 - [ ] Frontend built (`npm run build`)
@@ -287,4 +309,4 @@ For GitHub Actions or other CI:
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-11*
