@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { Settings, Save, RefreshCw, ChevronRight, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Settings, Save, RefreshCw, ChevronRight, ChevronDown, AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export default function ConfigEditor() {
   const [config, setConfig] = useState(null);
@@ -9,9 +9,13 @@ export default function ConfigEditor() {
   const [expanded, setExpanded] = useState({});
   const [edited, setEdited] = useState({});
   const [message, setMessage] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [validating, setValidating] = useState(false);
+  const [validationRules, setValidationRules] = useState({});
 
   useEffect(() => {
     loadConfig();
+    loadValidationRules();
   }, []);
 
   const loadConfig = async () => {
@@ -25,17 +29,76 @@ export default function ConfigEditor() {
     }
   };
 
+  const loadValidationRules = async () => {
+    try {
+      const res = await api.get('/config/validation-rules');
+      setValidationRules(res.data);
+    } catch (e) {
+      console.error('Failed to load validation rules:', e);
+    }
+  };
+
   const toggleSection = (key) => {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Debounced validation
+  const validatePath = useCallback(async (path, value) => {
+    try {
+      setValidating(true);
+      const res = await api.post('/config/validate', { path, value });
+      
+      if (res.data.errors && res.data.errors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [path]: res.data.errors.map(e => e.error)
+        }));
+      } else {
+        setValidationErrors(prev => {
+          const next = { ...prev };
+          delete next[path];
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error('Validation failed:', e);
+    } finally {
+      setValidating(false);
+    }
+  }, []);
+
   const handleEdit = (path, value) => {
     setEdited(prev => ({ ...prev, [path]: value }));
+    
+    // Validate after a short delay
+    setTimeout(() => validatePath(path, value), 300);
   };
 
   const saveAll = async () => {
     setSaving(true);
     setMessage(null);
+    
+    // Final validation before save
+    try {
+      const validations = await Promise.all(
+        Object.entries(edited).map(([path, value]) => 
+          api.post('/config/validate', { path, value })
+        )
+      );
+      
+      const allErrors = validations.flatMap(v => v.data.errors || []);
+      if (allErrors.length > 0) {
+        setMessage({ 
+          type: 'error', 
+          text: `Cannot save: ${allErrors.length} validation error(s). ${allErrors[0].error}` 
+        });
+        setSaving(false);
+        return;
+      }
+    } catch (e) {
+      console.error('Pre-save validation failed:', e);
+    }
+    
     try {
       for (const [path, value] of Object.entries(edited)) {
         try {
@@ -47,6 +110,7 @@ export default function ConfigEditor() {
       }
       setMessage({ type: 'success', text: 'All changes saved successfully' });
       setEdited({});
+      setValidationErrors({});
       await loadConfig();
     } finally {
       setSaving(false);
@@ -68,6 +132,7 @@ export default function ConfigEditor() {
       const currentPath = path ? `${path}.${key}` : key;
       const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
       const isEdited = edited[currentPath] !== undefined;
+      const hasError = validationErrors[currentPath];
 
       return (
         <div key={key} style={{ marginLeft: depth > 0 ? '20px' : '0' }}>
@@ -90,18 +155,36 @@ export default function ConfigEditor() {
                 {!isObject && typeof value !== 'object' && (
                   <input
                     type="text"
-                    className="input text-xs font-mono w-48 hidden"
+                    className={`input text-xs font-mono w-48 transition-colors ${
+                      hasError ? 'border-red-500 focus:border-red-500' : 
+                      isEdited ? 'border-amber-500 focus:border-amber-500' : ''
+                    }`}
                     value={String(edited[currentPath] ?? value)}
                     onChange={e => handleEdit(currentPath, e.target.value)}
-                    style={{ display: 'none' }}
                   />
                 )}
               </div>
             )}
 
-            {isEdited && (
-              <span className="text-amber-400 text-xs">✏️ modified</span>
-            )}
+            {/* Status indicators */}
+            <div className="flex items-center gap-1">
+              {hasError && (
+                <div className="group relative">
+                  <XCircle className="w-3.5 h-3.5 text-red-400" />
+                  <div className="absolute right-0 bottom-full mb-1 w-64 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-300 hidden group-hover:block z-50">
+                    {hasError.map((err, i) => (
+                      <div key={i}>{err}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isEdited && !hasError && (
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              {validating && isEdited && (
+                <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              )}
+            </div>
           </div>
 
           {isObject && expanded[currentPath] && renderConfigTree(value, currentPath, depth + 1)}
@@ -110,24 +193,62 @@ export default function ConfigEditor() {
     });
   };
 
+  // Count total validation errors
+  const totalErrors = Object.values(validationErrors).flat().length;
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Gateway Config Editor</h2>
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Settings className="w-5 h-5 text-accent-primary" />
+            Gateway Config Editor
+          </h2>
+          <p className="text-sm text-text-muted mt-1">Edit config with real-time validation</p>
+        </div>
         <div className="flex items-center gap-2">
+          {totalErrors > 0 && (
+            <span className="badge badge-sm bg-red-500/20 text-red-400">
+              {totalErrors} error(s)
+            </span>
+          )}
           <button onClick={loadConfig} className="btn btn-sm btn-ghost">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           {Object.keys(edited).length > 0 && (
-            <button onClick={saveAll} className="btn btn-sm btn-primary" disabled={saving}>
+            <button 
+              onClick={saveAll} 
+              className={`btn btn-sm ${totalErrors > 0 ? 'btn-secondary' : 'btn-primary'}`}
+              disabled={saving || totalErrors > 0}
+            >
               <Save className="w-4 h-4" />
               {saving ? 'Saving...' : `Save (${Object.keys(edited).length})`}
             </button>
           )}
         </div>
       </div>
+
+      {/* Validation summary */}
+      {Object.keys(validationErrors).length > 0 && (
+        <div className="card p-4 bg-red-500/5 border-red-500/30">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <span className="font-medium text-red-400">Validation Errors</span>
+          </div>
+          <div className="space-y-1">
+            {Object.entries(validationErrors).map(([path, errors]) => (
+              <div key={path} className="text-xs">
+                <span className="font-mono text-red-300">{path}:</span>
+                {errors.map((err, i) => (
+                  <div key={i} className="ml-2 text-red-400/80">• {err}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {message && (
         <div className={`p-3 rounded-lg text-sm ${
@@ -137,7 +258,15 @@ export default function ConfigEditor() {
         </div>
       )}
 
-      <div className="card p-4 overflow-auto max-h-[calc(100vh-250px)]">
+      {/* Legend */}
+      <div className="card p-3 text-xs text-text-muted flex gap-4">
+        <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400" /> Valid change</span>
+        <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-red-400" /> Validation error</span>
+        <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 text-amber-400 animate-spin" /> Validating...</span>
+        <span className="ml-auto">Hover over error icons to see details</span>
+      </div>
+
+      <div className="card p-4 overflow-auto max-h-[calc(100vh-350px)]">
         {config ? renderConfigTree(config) : (
           <div className="text-center py-8 text-text-muted">
             <AlertTriangle className="w-12 h-12 mx-auto mb-3 opacity-50" />

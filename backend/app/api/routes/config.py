@@ -11,6 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.config_history import ConfigSnapshot
 from app.models.audit import AuditLog
+from app.services.config_validator import (
+    validate_config_path,
+    validate_full_config,
+    validate_diff,
+)
 
 router = APIRouter(prefix="/v3", tags=["Config"])
 
@@ -236,3 +241,78 @@ async def patch_full_config(
     await db.commit()
     
     return {"success": True, "message": "Config updated successfully"}
+
+
+@router.post("/config/validate")
+async def validate_config_path_endpoint(value: dict):
+    """Validate a single config path change against schema rules.
+    
+    Body: {"path": "gateway.auth.mode", "value": "token"}
+    """
+    path = value.get("path", "")
+    val = value.get("value")
+    
+    errors = validate_config_path(path, val)
+    
+    return {
+        "valid": len(errors) == 0,
+        "path": path,
+        "errors": errors,
+        "error_count": len(errors)
+    }
+
+
+@router.post("/config/validate/diff")
+async def validate_diff_endpoint(proposed: dict):
+    """Validate proposed config changes by diffing against current.
+    
+    Body: {"config": {...proposed changes...}}
+    """
+    new_config = proposed.get("config", {})
+    
+    try:
+        with open(CONFIG_PATH) as f:
+            current_config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        current_config = {}
+    
+    errors = validate_diff(current_config, new_config)
+    
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "error_count": len(errors),
+        "checks_performed": len(VALIDATION_RULES)
+    }
+
+
+@router.post("/config/validate/full")
+async def validate_full_config_endpoint(config: dict):
+    """Validate an entire config dict against schema rules.
+    
+    Body: {"config": {...full config...}}
+    """
+    errors = validate_full_config(config)
+    
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "error_count": len(errors),
+        "keys_checked": list(config.keys())
+    }
+
+
+# Expose VALIDATION_RULES for frontend
+from app.services.config_validator import VALIDATION_RULES
+
+
+@router.get("/config/validation-rules")
+async def get_validation_rules():
+    """Get all validation rules for frontend display."""
+    return {
+        "rules": {path: {k: v for k, v in rule.items()} for path, rule in VALIDATION_RULES.items()},
+        "known_keys": list(KNOWN_KEYS.keys()),
+    }
+
+
+from app.services.config_validator import KNOWN_KEYS
