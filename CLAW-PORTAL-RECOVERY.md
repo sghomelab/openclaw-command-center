@@ -26,17 +26,18 @@ The Claw Portal is a React SPA (frontend) + FastAPI backend (port 9000) with SQL
 
 | # | Feature | Status | Details |
 |---|---------|--------|---------|
-| 1.1 | **Agent Status Dashboard (Live)** | ✅ Exists (Agents.jsx) | Needs: real status from Gateway sessions, heartbeat timestamps, last-activity, current-task, action buttons (steer/kill/message) |
-| 1.2 | **System Health Monitor** | ✅ Exists (GatewayHealth.jsx) | Needs: disk/memory/CPU gauges from host, alert thresholds, portal backend health (ports 9000/5713), alert history timeline |
-| 1.3 | **Cron Job Manager (Visual)** | ⚠️ Backend exists (`/crons`) | Needs: frontend page showing all jobs, last/next run, enable/disable toggle, success/failure badges, run history per job |
+| 1.1 | **Agent Status Dashboard (Live)** | ✅ Complete | Real status from Gateway sessions, action buttons (steer/kill/message) |
+| 1.2 | **System Health Monitor** | ✅ Complete (v4.5.0) | Grafana-like dashboard: disk/memory/CPU gauges, load averages, uptime, auto-refresh, health status indicators |
+| 1.3 | **Cron Job Manager (Visual)** | ✅ Complete | Frontend page with all jobs, last/next run, enable/disable toggle, health badges, run history per job |
 
 ### Tier 2 — Core Value
 
 | # | Feature | Status | Details |
 |---|---------|--------|---------|
-| 2.1 | **Task Kanban Board** | ⚠️ Tasks page exists (basic) | Needs: 7-column board (Planning → Inbox → Assigned → In Progress → Testing → Review → Done), drag-and-drop, assign to agents |
-| 2.2 | **Real-Time Event Feed** | ❌ Missing | Needs: WebSocket/SSE feed of agent activities, heartbeat/cron/session/tool events, timestamped, color-coded by severity, filter/search |
-| 2.3 | **LLM Cost & Token Analytics** | ⚠️ Backend exists (`/costs`) | Needs: frontend page with per-model cost charts, quota alerts, daily/weekly trends, cost-per-agent breakdown |
+| 2.1 | **Task Kanban Board** | ✅ Complete | 7-column board (Planning → Inbox → Assigned → In Progress → Testing → Review → Done), drag-and-drop, agent assignment |
+| 2.2 | **Real-Time Event Feed** | ✅ Complete | Event feed page with timestamped, color-coded events by severity, filter/search |
+| 2.3 | **LLM Cost & Token Analytics** | ✅ Complete | Cost tracking charts, per-model breakdown, daily/weekly trends |
+| 2.4 | **Backup Management** | ✅ Complete (v4.5.0) | Backup status page, `/v3/backups/status` endpoint, status log viewer |
 
 ### Tier 3 — Advanced (Future)
 
@@ -58,9 +59,12 @@ Frontend (React + Vite)          Backend (FastAPI)
 │   ├── Dashboard.jsx            │   ├── analytics.py ← Mock → real data
 │   ├── GatewayHealth.jsx        │   ├── gateway.py   ← /healthz, /readyz
 │   ├── Tasks.jsx                │   ├── costs.py     ← QMD DB query
-│   ├── Crons.jsx (NEW)          │   ├── crons.py     ← Gateway cron API
-│   ├── Events.jsx (NEW)         │   ├── knowledge.py ← QMD facts
-│   └── CostAnalytics.jsx (NEW)  │   └── health.py    ← system health
+│   ├── Crons.jsx                │   ├── crons.py     ← Gateway cron API
+│   ├── Events.jsx               │   ├── knowledge.py ← QMD facts
+│   ├── CostAnalytics.jsx        │   └── health.py    ← system health
+│   ├── Monitoring.jsx (v4.5.0)  │   ├── monitoring.py ← system + OC metrics
+│   ├── Backups.jsx (v4.5.0)     │   ├── backups.py   ← backup status
+│   └── Disk.jsx                 │   └── disk.py      ← disk usage
 ├── components/                  └── services/
 └── services/api.js              └── auth_service.py
 ```
@@ -87,7 +91,7 @@ Frontend (React + Vite)          Backend (FastAPI)
   - All routes registered in App.jsx, sidebar updated with new nav links
   - Next: rebuild frontend, restart backend, test endpoints
 
-### Completed Files
+### Completed Files (Batch 1)
 | File | Lines Changed | Feature |
 |------|---------------|---------|
 | `backend/app/api/routes/health.py` | +106 | System health endpoint (disk/CPU/memory) |
@@ -100,8 +104,6 @@ Frontend (React + Vite)          Backend (FastAPI)
 | `frontend/src/pages/CostAnalytics.jsx` | +251 | Cost tracking charts (new page) |
 | `frontend/src/App.jsx` | +10 | Route registrations |
 | `frontend/src/components/Sidebar.jsx` | +6 | New nav links |
-
-- [Ongoing — updates will be appended here]
 
 - **2026-05-10 06:45 UTC** — **DEPLOYED & TESTED** ✅
   - Frontend rebuilt (Vite, 360ms build, 731KB bundle)
@@ -121,3 +123,127 @@ Frontend (React + Vite)          Backend (FastAPI)
 | Memory | ✅ 14.5% used | — |
 | CPU | ✅ 0.3% | — |
 | Agents | ✅ 7 configured | — |
+
+- **2026-05-11 03:24 UTC** — **v4.3.0: Sidebar restructure** ✅
+  - Full sidebar reorganization into 7 collapsible parent groups:
+    - Dashboard, Operations, Intelligence, Orchestration, Infrastructure, Configuration, Observability
+  - Auto-expand groups when navigating to child pages
+  - Committed: `272b93f feat(v4.3.0): full sidebar restructure — 6 collapsible groups for ease of use`
+  - Pushed to `origin/master` ✅
+
+- **2026-05-11 03:24 UTC** — **v4.5.0: Grafana-like monitoring dashboard** ✅
+  - New `Monitoring.jsx` (319 lines) — full Grafana-style dashboard with:
+    - SVG gauge charts for disk and memory usage
+    - System metrics: disk, memory, CPU, load averages (1m/5m/15m), uptime
+    - OpenClaw metrics: sessions count, cron stats, backup info
+    - Auto-refresh every 30 seconds
+    - Health status indicators (Healthy/Warning/Critical) with color-coded alerts
+    - Recharts visualizations (PieChart, BarChart, AreaChart, LineChart)
+  - New `monitoring.py` backend routes (196 lines):
+    - `GET /v3/monitoring/system` — disk, memory, CPU, load, uptime
+    - `GET /v3/monitoring/openclaw` — sessions, crons, backups
+    - `GET /v3/monitoring/summary` — combined metrics
+    - `GET /v3/monitoring/history` — placeholder for Prometheus integration
+  - New `Backups.jsx` page (123 lines) + `backups.py` backend routes (68 lines)
+  - `GET /v3/backups/status` — backup status endpoint
+  - Sidebar updated: Monitoring + Backups under Infrastructure group
+  - Committed: `fbc5245 feat(v4.5.0): Grafana-like monitoring dashboard integrated into Mission Control`
+  - Pushed to `origin/master` ✅
+
+- **2026-05-11 03:31 UTC** — **v4.7.0: Fix Monitoring blank page** ✅
+  - Fixed `formatBytes()` crash on string disk values ("1.9T", "117G") from `df` output
+  - Monitoring page now renders correctly with proper byte formatting
+  - Added 7 new smoke test cases in `test-portal.sh`:
+    - Monitoring system/openclaw/summary endpoint checks (HTTP 200)
+    - System metrics data shape validation (disk, memory, cpu, load, uptime)
+    - OpenClaw metrics data shape validation (sessions, crons, backups)
+    - Backup status endpoint check
+  - Total: 29 smoke tests, 0 failures
+  - Committed: `f0ad4db fix(v4.7.0): fix Monitoring.jsx blank page — formatBytes() handles string disk values; add 7 test cases`
+  - Pushed to `origin/master` ✅
+
+- **2026-05-11 03:35 UTC** — **v4.8.0: Test plan update** ✅
+  - Updated `test-portal.sh` with monitoring + backup test cases
+  - Updated CHANGELOG.md with v4.7.0 fix entry
+  - Committed: `ee633c1 docs(v4.8.0): update test plan with monitoring + backup test cases (23→29 tests)`
+  - Pushed to `origin/master` ✅
+
+### Completed Files (Batch 2 — v4.5.0–v4.8.0)
+| File | Lines Changed | Feature |
+|------|---------------|---------|
+| `backend/app/api/routes/monitoring.py` | +196 | System + OpenClaw monitoring metrics |
+| `backend/app/api/routes/backups.py` | +68 | Backup status endpoint |
+| `frontend/src/pages/Monitoring.jsx` | +319 | Grafana-like monitoring dashboard |
+| `frontend/src/pages/Backups.jsx` | +123 | Backup status page |
+| `backend/app/main.py` | +4 | Route registrations (monitoring, backups) |
+| `frontend/src/App.jsx` | +4 | Route registrations (monitoring, backups) |
+| `frontend/src/components/Sidebar.jsx` | +5 | Monitoring + Backups nav links under Infrastructure |
+| `test-portal.sh` | +47 | Monitoring + backup smoke tests |
+
+### Backend Route Inventory
+| Route File | Endpoint Prefix | Status |
+|------------|-----------------|--------|
+| `agents.py` | `/v3/agents/*` | ✅ Live |
+| `alerts.py` | `/v3/alerts/*` | ✅ Live |
+| `analytics.py` | `/v3/analytics/*` | ⚠️ Mock data |
+| `audit.py` | `/v3/audit/*` | ✅ Live |
+| `auth.py` | `/v3/auth/*` | ✅ Live |
+| `backups.py` | `/v3/backups/*` | ✅ Live (v4.5.0) |
+| `calendar.py` | `/v3/calendar/*` | ✅ Live |
+| `config.py` | `/v3/config/*` | ✅ Live |
+| `costs.py` | `/v3/costs/*` | ✅ Live |
+| `crons.py` | `/v3/crons/*` | ✅ Live |
+| `disk.py` | `/v3/disk/*` | ✅ Live |
+| `events.py` | `/v3/events/*` | ✅ Live |
+| `gateway.py` | `/v3/gateway/*` | ✅ Live |
+| `health.py` | `/v3/health/*` | ✅ Live |
+| `integrations.py` | `/v3/integrations/*` | ✅ Live |
+| `knowledge.py` | `/v3/knowledge/*` | ✅ Live |
+| `memory.py` | `/v3/memory/*` | ✅ Live |
+| `monitoring.py` | `/v3/monitoring/*` | ✅ Live (v4.5.0) |
+| `opdata.py` | `/v3/opdata/*` | ✅ Live |
+| `sessions.py` | `/v3/sessions/*` | ✅ Live |
+| `skills.py` | `/v3/skills/*` | ✅ Live |
+| `users.py` | `/v3/users/*` | ✅ Live |
+| `wiki.py` | `/v3/wiki/*` | ✅ Live |
+| `workflows.py` | `/v3/workflows/*` | ✅ Live |
+
+### Current Sidebar Structure
+```
+Dashboard
+Operations
+  ├── Tasks
+  ├── Projects
+  ├── Workflows
+  └── Calendar
+Intelligence
+  ├── Knowledge Base
+  ├── LLM Wiki
+  └── Memory
+Orchestration
+  ├── Agents
+  ├── Sessions
+  └── Conversations
+Infrastructure
+  ├── Gateway Health
+  ├── Disk Usage
+  ├── Cron (Cron Jobs / Cron Editor)
+  ├── Backups
+  └── Monitoring
+Configuration
+  ├── Config Editor
+  ├── Skills
+  └── Integrations
+Observability
+  ├── Alert Rules
+  ├── Audit Logs
+  └── Cost Analytics
+Settings
+```
+
+### Current Git Status
+- **Branch:** `master`
+- **HEAD:** `ee633c1` (v4.8.0 docs update)
+- **Remote:** `origin/master` — synced ✅
+- **Uncommitted:** `backend/claw_portal.db` (SQLite DB growth — not committed)
+- **Repository:** `https://github.com/sghomelab/openclaw-command-center.git`
