@@ -4,7 +4,7 @@ import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
   Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen,
-  ChevronDown, ChevronRight, GitBranch, Shield, Activity, Database
+  ChevronDown, ChevronRight, GitBranch, Shield, Activity, Database, Archive
 } from 'lucide-react';
 
 const navItems = [
@@ -51,6 +51,8 @@ const navItems = [
           { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
         ],
       },
+      { label: 'Backups', icon: Archive, path: '#/backups' },
+      { label: 'Monitoring', icon: Activity, path: '#/monitoring' },
     ],
   },
   {

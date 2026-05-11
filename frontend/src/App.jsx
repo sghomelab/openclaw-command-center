@@ -26,6 +26,8 @@ import DiskUsage from './pages/DiskUsage';
 import MemoryExplorer from './pages/MemoryExplorer';
 import ConversationViewer from './pages/ConversationViewer';
 import LLMWiki from './pages/LLMWiki';
+import Backups from './pages/Backups';
+import Monitoring from './pages/Monitoring';
 
 const pages = {
   '': { component: Dashboard, title: 'Dashboard' },
@@ -52,6 +54,8 @@ const pages = {
   events: { component: Events, title: 'Event Feed' },
   costs: { component: CostAnalytics, title: 'Cost Analytics' },
   wiki: { component: LLMWiki, title: 'LLM Wiki' },
+  backups: { component: Backups, title: 'Backup Status' },
+  monitoring: { component: Monitoring, title: 'Monitoring Dashboard' },
 };
 
 function PrivateRoute() {
