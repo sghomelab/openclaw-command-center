@@ -4,46 +4,77 @@ import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
   Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, GitBranch, Shield, Activity, Database
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '#/' },
-  { label: 'Alert Rules', icon: AlertTriangle, path: '#/alerts' },
-  { label: 'Tasks', icon: CheckSquare, path: '#/tasks' },
-  { label: 'Projects', icon: FolderKanban, path: '#/projects' },
-  { label: 'Workflows', icon: Workflow, path: '#/workflows' },
   {
-    label: 'Knowledge',
+    label: 'Operations',
+    icon: Workflow,
+    children: [
+      { label: 'Tasks', icon: CheckSquare, path: '#/tasks' },
+      { label: 'Projects', icon: FolderKanban, path: '#/projects' },
+      { label: 'Workflows', icon: GitBranch, path: '#/workflows' },
+      { label: 'Calendar', icon: Calendar, path: '#/calendar' },
+    ],
+  },
+  {
+    label: 'Intelligence',
     icon: Brain,
     children: [
       { label: 'Knowledge Base', icon: Brain, path: '#/knowledge' },
       { label: 'LLM Wiki', icon: BookOpen, path: '#/wiki' },
+      { label: 'Memory', icon: Database, path: '#/memory' },
     ],
   },
-  { label: 'Memory', icon: Brain, path: '#/memory' },
-  { label: 'Calendar', icon: Calendar, path: '#/calendar' },
-  { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
-  { label: 'Audit Logs', icon: FileText, path: '#/audit' },
-  { label: 'Agents', icon: Users, path: '#/agents' },
-  { label: 'Sessions', icon: Eye, path: '#/sessions' },
-  { label: 'Conversations', icon: MessageSquare, path: '#/conversations' },
-  { label: 'Gateway Health', icon: Server, path: '#/gateway' },
   {
-    label: 'Cron',
-    icon: Clock,
+    label: 'Orchestration',
+    icon: Users,
     children: [
-      { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
-      { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
+      { label: 'Agents', icon: Users, path: '#/agents' },
+      { label: 'Sessions', icon: Eye, path: '#/sessions' },
+      { label: 'Conversations', icon: MessageSquare, path: '#/conversations' },
     ],
   },
-  { label: 'Skills', icon: Puzzle, path: '#/skills' },
-  { label: 'Config Editor', icon: Settings, path: '#/config' },
-  { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
+  {
+    label: 'Infrastructure',
+    icon: Server,
+    children: [
+      { label: 'Gateway Health', icon: Activity, path: '#/gateway' },
+      { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
+      {
+        label: 'Cron',
+        icon: Clock,
+        children: [
+          { label: 'Cron Jobs', icon: Clock, path: '#/crons' },
+          { label: 'Cron Editor', icon: Clock, path: '#/croneditor' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Configuration',
+    icon: Settings,
+    children: [
+      { label: 'Config Editor', icon: Settings, path: '#/config' },
+      { label: 'Skills', icon: Puzzle, path: '#/skills' },
+      { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
+    ],
+  },
+  {
+    label: 'Observability',
+    icon: Shield,
+    children: [
+      { label: 'Alert Rules', icon: AlertTriangle, path: '#/alerts' },
+      { label: 'Audit Logs', icon: FileText, path: '#/audit' },
+      { label: 'Cost Analytics', icon: Search, path: '#/costs' },
+    ],
+  },
   { label: 'Settings', icon: Settings, path: '#/settings' },
 ];
 
-function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
+function NavItem({ item, currentPage, collapsed }) {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
   const Icon = item.icon;
@@ -53,8 +84,17 @@ function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
     : false;
 
   const isParentActive = hasChildren && item.children.some(
-    child => currentPage === child.path.replace('#/', '')
+    child => child.path
+      ? currentPage === child.path.replace('#/', '')
+      : child.children && child.children.some(
+          grandchild => currentPage === grandchild.path.replace('#/', '')
+        )
   );
+
+  // Auto-expand if a child is active
+  if (isParentActive && !expanded) {
+    setExpanded(true);
+  }
 
   if (hasChildren) {
     return (
@@ -72,14 +112,12 @@ function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
         </button>
         {expanded && !collapsed && (
           <div className="ml-4 mt-1 space-y-1">
-            {item.children.map(child => (
+            {item.children.map((child, ci) => (
               <NavItem
-                key={child.path}
+                key={ci}
                 item={child}
                 currentPage={currentPage}
-                onNavigate={onNavigate}
                 collapsed={false}
-                depth={depth + 1}
               />
             ))}
           </div>
@@ -91,7 +129,7 @@ function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
   return (
     <a
       href={item.path}
-      onClick={(e) => { e.preventDefault(); onNavigate(item.path); }}
+      onClick={(e) => { e.preventDefault(); window.location.hash = item.path; }}
       className={`${isActive ? 'sidebar-link-active' : 'sidebar-link'} ${collapsed ? 'justify-center px-0' : ''}`}
       title={item.label}
     >
@@ -101,7 +139,7 @@ function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
   );
 }
 
-export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }) {
+export default function Sidebar({ currentPage, collapsed, onToggle }) {
   const { user, logout } = useAuth();
 
   return (
@@ -114,7 +152,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
         {!collapsed && (
           <div className="overflow-hidden">
             <h1 className="font-bold text-sm text-text-primary truncate">Claw Mission Control</h1>
-            <p className="text-xs text-text-muted truncate">v3.0.0</p>
+            <p className="text-xs text-text-muted truncate">v4.0</p>
           </div>
         )}
       </div>
@@ -126,7 +164,6 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
             key={i}
             item={item}
             currentPage={currentPage}
-            onNavigate={onNavigate}
             collapsed={collapsed}
           />
         ))}
