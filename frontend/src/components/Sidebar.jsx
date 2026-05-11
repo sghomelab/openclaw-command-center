@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
-  Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen
+  Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 
 const navItems = [
@@ -11,7 +13,14 @@ const navItems = [
   { label: 'Tasks', icon: CheckSquare, path: '#/tasks' },
   { label: 'Projects', icon: FolderKanban, path: '#/projects' },
   { label: 'Workflows', icon: Workflow, path: '#/workflows' },
-  { label: 'Knowledge', icon: Brain, path: '#/knowledge' },
+  {
+    label: 'Knowledge',
+    icon: Brain,
+    children: [
+      { label: 'Knowledge Base', icon: Brain, path: '#/knowledge' },
+      { label: 'LLM Wiki', icon: BookOpen, path: '#/wiki' },
+    ],
+  },
   { label: 'Memory', icon: Brain, path: '#/memory' },
   { label: 'Calendar', icon: Calendar, path: '#/calendar' },
   { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
@@ -25,9 +34,66 @@ const navItems = [
   { label: 'Skills', icon: Puzzle, path: '#/skills' },
   { label: 'Config Editor', icon: Settings, path: '#/config' },
   { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
-  { label: 'LLM Wiki', icon: BookOpen, path: '#/wiki' },
   { label: 'Settings', icon: Settings, path: '#/settings' },
 ];
+
+function NavItem({ item, currentPage, onNavigate, collapsed, depth = 0 }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasChildren = item.children && item.children.length > 0;
+  const Icon = item.icon;
+
+  const isActive = item.path
+    ? currentPage === item.path.replace('#/', '') || (currentPage === '' && item.path === '#/')
+    : false;
+
+  const isParentActive = hasChildren && item.children.some(
+    child => currentPage === child.path.replace('#/', '')
+  );
+
+  if (hasChildren) {
+    return (
+      <div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors text-sm ${
+            collapsed ? 'justify-center' : ''
+          } ${isActive || isParentActive ? 'sidebar-link-active' : 'sidebar-link'}`}
+          title={item.label}
+        >
+          <Icon className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+          {!collapsed && (expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />)}
+        </button>
+        {expanded && !collapsed && (
+          <div className="ml-4 mt-1 space-y-1">
+            {item.children.map(child => (
+              <NavItem
+                key={child.path}
+                item={child}
+                currentPage={currentPage}
+                onNavigate={onNavigate}
+                collapsed={false}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={item.path}
+      onClick={(e) => { e.preventDefault(); onNavigate(item.path); }}
+      className={`${isActive ? 'sidebar-link-active' : 'sidebar-link'} ${collapsed ? 'justify-center px-0' : ''}`}
+      title={item.label}
+    >
+      <Icon className="w-5 h-5 flex-shrink-0" />
+      {!collapsed && <span>{item.label}</span>}
+    </a>
+  );
+}
 
 export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }) {
   const { user, logout } = useAuth();
@@ -49,21 +115,15 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {navItems.map(({ label, icon: Icon, path }) => {
-          const active = currentPage === path.replace('#/', '') || (currentPage === '' && path === '#/');
-          return (
-            <a
-              key={path}
-              href={path}
-              onClick={(e) => { e.preventDefault(); onNavigate(path); }}
-              className={`${active ? 'sidebar-link-active' : 'sidebar-link'} ${collapsed ? 'justify-center px-0' : ''}`}
-              title={label}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span>{label}</span>}
-            </a>
-          );
-        })}
+        {navItems.map((item, i) => (
+          <NavItem
+            key={i}
+            item={item}
+            currentPage={currentPage}
+            onNavigate={onNavigate}
+            collapsed={collapsed}
+          />
+        ))}
       </nav>
 
       {/* Bottom */}
