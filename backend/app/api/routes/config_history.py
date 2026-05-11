@@ -104,6 +104,41 @@ async def list_snapshots(
     return [s.to_dict() for s in snapshots]
 
 
+@router.get("/config/history/stats")
+async def get_history_stats(db: AsyncSession = Depends(get_db)):
+    """Get config history statistics."""
+    # Total snapshots
+    result = await db.execute(select(ConfigSnapshot))
+    all_snapshots = result.scalars().all()
+    
+    # Snapshots per user
+    user_counts = {}
+    for s in all_snapshots:
+        user_counts[s.user] = user_counts.get(s.user, 0) + 1
+    
+    # Snapshots per day (last 7 days)
+    daily_counts = {}
+    for i in range(7):
+        day = datetime.now(timezone.utc) - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        result = await db.execute(
+            select(ConfigSnapshot).where(
+                ConfigSnapshot.timestamp >= day_start,
+                ConfigSnapshot.timestamp < day_end
+            )
+        )
+        daily_counts[day.strftime("%Y-%m-%d")] = len(result.scalars().all())
+    
+    return {
+        "total_snapshots": len(all_snapshots),
+        "per_user": user_counts,
+        "daily_last_7_days": daily_counts,
+        "oldest_snapshot": all_snapshots[-1].timestamp.isoformat() if all_snapshots else None,
+        "newest_snapshot": all_snapshots[0].timestamp.isoformat() if all_snapshots else None,
+    }
+
+
 @router.get("/config/history/{snapshot_id}")
 async def get_snapshot(snapshot_id: int, db: AsyncSession = Depends(get_db)):
     """Get a specific config snapshot."""
