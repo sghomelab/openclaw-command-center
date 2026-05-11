@@ -4,6 +4,25 @@ All notable changes to OpenClaw Command Center.
 
 ---
 
+## v4.7.0 — 2026-05-11
+**Fix Monitoring blank page + add 7 smoke tests**
+
+### Fixed
+- `formatBytes()` crashed on string disk values ("1.9T", "117G") from `df` output
+- Monitoring page now renders correctly with proper byte formatting
+
+### Added
+- 7 new smoke test cases in `test-portal.sh`:
+  - `GET /v3/monitoring/system` — HTTP 200
+  - `GET /v3/monitoring/openclaw` — HTTP 200
+  - `GET /v3/monitoring/summary` — HTTP 200
+  - System metrics data shape (disk, memory, cpu, load, uptime)
+  - OpenClaw metrics data shape (sessions, crons, backups)
+  - `GET /v3/backups/status` — HTTP 200
+- Total: 29 smoke tests, 0 failures
+
+---
+
 ## v4.5.0 — 2026-05-11
 **Grafana-like monitoring dashboard integrated into Mission Control**
 
