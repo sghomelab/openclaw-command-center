@@ -45,7 +45,7 @@ The Claw Portal is a React SPA (frontend) + FastAPI backend (port 9000) with SQL
 |---|---------|--------|---------|
 | 3.1 | Approval Workflow Panel | 📋 Planned | Queue of actions awaiting human approval, audit trail |
 | 3.2 | Discord Integration View | 📋 Planned | Recent messages per channel, agent-to-agent communication log |
-| 3.3 | Configuration Governance | 🚧 In Progress (Phase 1 ✅, Phase 2 ✅) | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
+| 3.3 | Configuration Governance | ✅ Complete (Phases 1-3) | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
 | 3.4 | Memory Explorer Upgrade | 📋 Planned | Fact count visualization, extraction success rates, cross-corpus search |
 
 **3.3 Configuration Governance** — implementation plan created at `docs/CONFIG-GOVERNANCE-PLAN.md` (2026-05-11)
@@ -168,6 +168,35 @@ Frontend (React + Vite)          Backend (FastAPI)
   - Total: 29 smoke tests, 0 failures
   - Committed: `f0ad4db fix(v4.7.0): fix Monitoring.jsx blank page — formatBytes() handles string disk values; add 7 test cases`
   - Pushed to `origin/master` ✅
+
+- **2026-05-11 11:31 UTC** — **v5.2.0: Config Audit Trail (Phase 3)** ✅
+  - Config audit service with deep diff engine:
+    - Tracks added/removed/modified paths with before/after values
+    - Records every config change with timestamp, user, reason
+    - Truncates large values (max 500 chars) for storage
+  - Audit API endpoints:
+    - `GET /v3/config/audit` — filtered audit log (user/action/days)
+    - `GET /v3/config/audit/stats` — statistics by action/user/day
+  - Auto-audit on config patches:
+    - Records path, value, diff summary, total changes
+    - Integrated into patch_config and patch_full_config endpoints
+  - Audit on config restores:
+    - Records snapshot ID, timestamp, user, reason
+  - ConfigAudit.jsx upgraded:
+    - Uses config-specific audit endpoint instead of general audit
+    - Stats cards with live data from audit stats endpoint
+    - Search/filter by user, action, date range
+    - CSV export capability
+  - Committed: `4c17d6c feat(v5.2.0)`
+  - Pushed to `origin/master` ✅
+
+### Completed Files (Phase 3 — v5.2.0)
+| File | Lines Changed | Feature |
+|------|---------------|---------|
+| `backend/app/services/config_audit.py` | +110 | Deep diff engine, audit recording |
+| `backend/app/api/routes/config_history.py` | +80 | Audit API endpoints |
+| `backend/app/api/routes/config.py` | +30 | Auto-audit on patches/restores |
+| `frontend/src/pages/ConfigAudit.jsx` | +40 | Upgraded to config-specific audit |
 
 - **2026-05-11 09:58 UTC** — **v5.1.0: Schema Validation (Phase 2)** ✅
   - Config validator service with 15+ validation rules:
