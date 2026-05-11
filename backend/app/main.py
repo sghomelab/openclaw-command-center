@@ -30,6 +30,7 @@ import app.models.audit
 import app.models.integration
 import app.models.workflow
 import app.models.opdata
+import app.models.config_history
 
 # Import routes
 from app.api.routes import (
@@ -58,6 +59,7 @@ from app.api.routes import (
     backups,
     monitoring,
 )
+from app.api.routes.config_history import router as config_history_router
 
 
 @asynccontextmanager
@@ -218,6 +220,7 @@ app.include_router(events.router)
 app.include_router(wiki.router)
 app.include_router(backups.router)
 app.include_router(monitoring.router)
+app.include_router(config_history_router)
 
 
 # Root endpoint

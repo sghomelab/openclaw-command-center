@@ -1,1 +1,1 @@
-# routes package
+# routes package - lazy imports to avoid circular dependencies

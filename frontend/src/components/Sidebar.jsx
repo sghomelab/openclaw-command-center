@@ -4,7 +4,8 @@ import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
   Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen,
-  ChevronDown, ChevronRight, GitBranch, Shield, Activity, Database, Archive
+  ChevronDown, ChevronRight, GitBranch, Shield, Activity, Database, Archive,
+  History
 } from 'lucide-react';
 
 const navItems = [
@@ -60,6 +61,8 @@ const navItems = [
     icon: Settings,
     children: [
       { label: 'Config Editor', icon: Settings, path: '#/config' },
+      { label: 'Config History', icon: History, path: '#/confighistory' },
+      { label: 'Config Audit', icon: FileText, path: '#/configaudit' },
       { label: 'Skills', icon: Puzzle, path: '#/skills' },
       { label: 'Integrations', icon: Puzzle, path: '#/integrations' },
     ],

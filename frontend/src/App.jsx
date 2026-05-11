@@ -28,6 +28,8 @@ import ConversationViewer from './pages/ConversationViewer';
 import LLMWiki from './pages/LLMWiki';
 import Backups from './pages/Backups';
 import Monitoring from './pages/Monitoring';
+import ConfigHistory from './pages/ConfigHistory';
+import ConfigAudit from './pages/ConfigAudit';
 
 const pages = {
   '': { component: Dashboard, title: 'Dashboard' },
@@ -56,6 +58,8 @@ const pages = {
   wiki: { component: LLMWiki, title: 'LLM Wiki' },
   backups: { component: Backups, title: 'Backup Status' },
   monitoring: { component: Monitoring, title: 'Monitoring Dashboard' },
+  confighistory: { component: ConfigHistory, title: 'Config History' },
+  configaudit: { component: ConfigAudit, title: 'Config Audit' },
 };
 
 function PrivateRoute() {
