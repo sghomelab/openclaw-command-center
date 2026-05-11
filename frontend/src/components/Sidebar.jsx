@@ -2,7 +2,7 @@ import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, AlertTriangle, Workflow, Puzzle,
   FolderKanban, CheckSquare, FileText, Settings, LogOut, Brain, Calendar,
-  Users, Server, Clock, HardDrive, MessageSquare, Eye, Search
+  Users, Server, Clock, HardDrive, MessageSquare, Eye, Search, BookOpen
 } from 'lucide-react';
 
 const navItems = [
@@ -25,6 +25,7 @@ const navItems = [
   { label: 'Skills', icon: Puzzle, path: '#/skills' },
   { label: 'Config Editor', icon: Settings, path: '#/config' },
   { label: 'Disk Usage', icon: HardDrive, path: '#/disk' },
+  { label: 'LLM Wiki', icon: BookOpen, path: '#/wiki' },
   { label: 'Settings', icon: Settings, path: '#/settings' },
 ];
 

@@ -25,6 +25,7 @@ import ConfigEditor from './pages/ConfigEditor';
 import DiskUsage from './pages/DiskUsage';
 import MemoryExplorer from './pages/MemoryExplorer';
 import ConversationViewer from './pages/ConversationViewer';
+import LLMWiki from './pages/LLMWiki';
 
 const pages = {
   '': { component: Dashboard, title: 'Dashboard' },
@@ -50,6 +51,7 @@ const pages = {
   conversations: { component: ConversationViewer, title: 'Conversations' },
   events: { component: Events, title: 'Event Feed' },
   costs: { component: CostAnalytics, title: 'Cost Analytics' },
+  wiki: { component: LLMWiki, title: 'LLM Wiki' },
 };
 
 function PrivateRoute() {

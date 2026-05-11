@@ -54,6 +54,7 @@ from app.api.routes import (
     disk,
     memory,
     events,
+    wiki,
 )
 
 
@@ -212,6 +213,7 @@ app.include_router(config.router)
 app.include_router(disk.router)
 app.include_router(memory.router)
 app.include_router(events.router)
+app.include_router(wiki.router)
 
 
 # Root endpoint
