@@ -45,7 +45,7 @@ The Claw Portal is a React SPA (frontend) + FastAPI backend (port 9000) with SQL
 |---|---------|--------|---------|
 | 3.1 | Approval Workflow Panel | 📋 Planned | Queue of actions awaiting human approval, audit trail |
 | 3.2 | Discord Integration View | 📋 Planned | Recent messages per channel, agent-to-agent communication log |
-| 3.3 | Configuration Governance | 📝 Planning | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
+| 3.3 | Configuration Governance | 🚧 In Progress (Phase 1 ✅) | [Detailed plan](docs/CONFIG-GOVERNANCE-PLAN.md) — diff/rollback, schema validation, audit trail |
 | 3.4 | Memory Explorer Upgrade | 📋 Planned | Fact count visualization, extraction success rates, cross-corpus search |
 
 **3.3 Configuration Governance** — implementation plan created at `docs/CONFIG-GOVERNANCE-PLAN.md` (2026-05-11)
@@ -168,6 +168,35 @@ Frontend (React + Vite)          Backend (FastAPI)
   - Total: 29 smoke tests, 0 failures
   - Committed: `f0ad4db fix(v4.7.0): fix Monitoring.jsx blank page — formatBytes() handles string disk values; add 7 test cases`
   - Pushed to `origin/master` ✅
+
+- **2026-05-11 09:54 UTC** — **v5.0.0: Config History & Backup (Phase 1)** ✅
+  - ConfigSnapshot model — tracks every config change with rollback capability
+  - Config history API:
+    - `GET /v3/config/history` — list snapshots (filtered by user/days)
+    - `GET /v3/config/history/{id}` — retrieve snapshot
+    - `GET /v3/config/history/{id1}/diff/{id2}` — JSON diff between snapshots
+    - `GET /v3/config/history/stats` — history statistics
+    - `POST /v3/config/restore/{id}` — rollback to snapshot
+    - `POST /v3/config/snapshot` — manual snapshot creation
+  - Auto-backup before config patches (config.py enhanced)
+  - Frontend pages:
+    - `ConfigHistory.jsx` (340 lines) — timeline view, snapshot viewer, diff modal, rollback
+    - `ConfigAudit.jsx` (270 lines) — audit log table, CSV export, filters
+  - Sidebar updated: Config History + Config Audit under Configuration
+  - Routes registered in App.jsx
+  - Committed: `4ac1ad2 feat(v5.0.0)`, `72ec8de fix(v5.0.1)`
+  - Pushed to `origin/master` ✅
+
+### Completed Files (Phase 1 — v5.0.0)
+| File | Lines Changed | Feature |
+|------|---------------|---------|
+| `backend/app/models/config_history.py` | +45 | ConfigSnapshot SQLAlchemy model |
+| `backend/app/api/routes/config_history.py` | +281 | History/rollback/diff endpoints |
+| `backend/app/api/routes/config.py` | +162 | Auto-backup before patches, manual snapshot |
+| `frontend/src/pages/ConfigHistory.jsx` | +340 | History timeline, snapshot viewer, diff modal |
+| `frontend/src/pages/ConfigAudit.jsx` | +270 | Audit log table, CSV export, filters |
+| `frontend/src/App.jsx` | +4 | Route registrations |
+| `frontend/src/components/Sidebar.jsx` | +4 | Config History + Audit nav links |
 
 - **2026-05-11 03:35 UTC** — **v4.8.0: Test plan update** ✅
   - Updated `test-portal.sh` with monitoring + backup test cases
