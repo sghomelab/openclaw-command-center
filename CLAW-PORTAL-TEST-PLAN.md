@@ -2,7 +2,7 @@
 
 > **Purpose:** Document all test scenarios, expected outcomes, and verification steps for the Claw Portal.
 > **Run after:** Every code change, build, or deployment.
-> **Automated script:** `test-portal.sh` (29 automated checks)
+> **Automated script:** `test-portal.sh` (36 automated checks)
 > **Manual tests:** See sections below for UI verification steps.
 
 ---
@@ -30,6 +30,31 @@
 - Default credentials: `admin` / `admin123`
 - Python 3.11+, Node.js 18+, npm installed
 
+### ⚠️ Critical Pre-flight Check
+
+**Before running tests, verify the backend is running from the correct directory:**
+
+```bash
+# Find the backend process and its working directory
+BACKEND_PID=$(lsof -ti :9000)
+BACKEND_CWD=$(readlink /proc/$BACKEND_PID/cwd)
+echo "Backend running from: $BACKEND_CWD"
+
+# Must point to the actual project directory:
+# ✅ Good: /home/node/.openclaw/workspace-main/claw-portal/backend
+# ❌ Bad:  /home/node/.openclaw/workspace-main/claw-portal/claw-portal/backend (deleted)
+```
+
+If the CWD shows a `(deleted)` path or the old nested directory, kill and restart:
+```bash
+kill -9 $BACKEND_PID
+cd /home/node/.openclaw/workspace-main/claw-portal/backend && python3 run.py &
+sleep 3
+curl -s http://localhost:9000/v3/health
+```
+
+**Why this matters:** The SQLite database path (`./claw_portal.db`) is relative to the working directory. If the backend runs from the wrong path, it can't find the `users` table → login returns 500 Internal Server Error.
+
 ---
 
 ## Automated Smoke Tests
@@ -45,7 +70,14 @@ bash test-portal.sh
 
 | # | Test | Method | Endpoint | Expected |
 |---|------|--------|----------|----------|
-| 1 | Backend login | POST | `/v3/auth/login` | 200 + JWT token |
+| 1 | **Backend working directory** | — | — | CWD matches expected path (no `(deleted)`) |
+| 2 | **Database integrity** | — | — | `claw_portal.db` exists, `users` table accessible |
+| 3 | Backend login | POST | `/v3/auth/login` | 200 + JWT token |
+| 4 | Knowledge Base endpoint | GET | `/v3/data/knowledge/stats` | 401 (not logged in) or 200 (authed) — **not 404** |
+| 5 | Wiki stats | GET | `/v3/wiki/stats` | Returns JSON with `total >= 0` |
+| 6 | Memory files | GET | `/v3/memory/files` | Returns `files` array with `count >= 1` |
+| 7 | Config editor | GET | `/v3/config` | Returns valid JSON with `agents` key |
+| 8 | memnon.db exists | — | — | File exists at `backend/memnon/memnon.db`, not a broken symlink |
 | 2 | Proxy login | POST | `5713/v3/auth/login` | 200 + same token |
 | 3 | Backend health | GET | `/v3/health` | 200 |
 | 4 | Frontend SPA | GET | `5713/` | 200 + HTML |
@@ -228,6 +260,39 @@ bash test-portal.sh
 
 ---
 
+## Intelligence Pages
+
+### Test 27: Knowledge Base (`#/knowledge`)
+- **API:** GET `/v3/data/knowledge/stats`
+- **Expected:** Returns stats with `total_facts`, `source_files`, `unique_entities`
+- **⚠️ Auth Required:** Returns `401` if not logged in. The frontend's API interceptor silently converts 401 → `{data:{}}`, so the page appears empty. **Fix:** User must be logged in to see Knowledge Base data.
+- **Verify:** After login, page shows stat cards with numbers
+
+### Test 28: LLM Wiki (`#/wiki`)
+- **API:** GET `/v3/wiki/stats`
+- **Expected:** Returns JSON with `total` >= 0, `entities`, `concepts`, `sources`
+- **⚠️ Empty Stats:** If `total: 0`, the wiki hasn't been compiled. Run `openclaw wiki compile` to fix.
+- **Verify:** Dashboard tab shows compiled page counts
+
+### Test 29: Memory Explorer (`#/memory`)
+- **API:** GET `/v3/memory/files`
+- **Expected:** Returns `files` array with `total >= 1`
+- **Verify:** File browser shows daily notes and memory files
+
+### Test 30: Config Editor (`#/config`)
+- **API:** GET `/v3/config`
+- **Expected:** Returns valid JSON containing `agents`, `gateway`, `session` keys
+- **Verify:** Config tree view loads with expandable sections
+
+### Known Issue: Empty Intelligence Pages
+If Intelligence pages show blank content:
+1. **Not logged in** → Login first, then refresh the page
+2. **Wiki not compiled** → Run `openclaw wiki compile`
+3. **Knowledge stats 401** → Requires authentication token in localStorage
+4. **Frontend bug** → Check browser console for JS errors
+
+---
+
 ## Frontend Proxy
 
 ### Test 23: Proxy forwards GET requests
@@ -263,7 +328,8 @@ bash test-portal.sh
 
 Before pushing to production:
 
-- [ ] `bash test-portal.sh` passes all 29 tests
+- [ ] `bash test-portal.sh` passes all 31 tests
+- [ ] Backend working directory verified (no `(deleted)` path)
 - [ ] No secrets in git history (`git log --all --full-history -- "*.env" ".env"`)
 - [ ] `.gitignore` covers `.env/`, `node_modules/`, `__pycache__/`
 - [ ] Frontend built (`npm run build`)
@@ -279,6 +345,7 @@ Before pushing to production:
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
+| **Login returns 500** | Backend running from wrong/deleted directory | Check `readlink /proc/$(lsof -ti :9000)/cwd` — must be `claw-portal/backend/`. Kill old process, restart from correct path |
 | Login fails on frontend | Basic `http.server` instead of `start-portal.py` | Kill old process, run `python3 start-portal.py` |
 | Port 5713 in use | Zombie process | `kill -9 $(lsof -t -i :5713)` |
 | Port 9000 in use | Old uvicorn process | `kill $(lsof -t -i :9000)` |

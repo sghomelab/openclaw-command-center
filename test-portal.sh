@@ -30,6 +30,54 @@ echo " Claw Portal Smoke Tests"
 echo " $(date)"
 echo "========================================"
 
+# Pre-flight: Verify backend is running from the correct directory
+echo ""
+echo "Pre-flight Checks"
+
+# Check backend process working directory
+BACKEND_PID=$(lsof -ti :9000 2>/dev/null || echo "")
+if [[ -z "$BACKEND_PID" ]]; then
+  echo "  [FAIL] Backend not running on port 9000"
+  exit 1
+fi
+
+BACKEND_CWD=$(readlink /proc/$BACKEND_PID/cwd 2>/dev/null || echo "unknown")
+if echo "$BACKEND_CWD" | grep -q "(deleted)"; then
+  echo "  [FAIL] Backend running from deleted directory: $BACKEND_CWD"
+  echo "  → Kill process $BACKEND_PID and restart from claw-portal/backend/"
+  exit 1
+fi
+echo "  [PASS] Backend working directory: $BACKEND_CWD"
+PASS=$((PASS + 1)); TOTAL=$((TOTAL + 1))
+
+# Check database integrity
+DB_PATH="/home/node/.openclaw/workspace-main/claw-portal/backend/claw_portal.db"
+if [[ ! -f "$DB_PATH" ]]; then
+  echo "  [FAIL] Database not found at $DB_PATH"
+  exit 1
+fi
+
+DB_OK=$(python3 -c "
+import sqlite3
+conn = sqlite3.connect('$DB_PATH')
+cursor = conn.cursor()
+try:
+    cursor.execute('SELECT COUNT(*) FROM users')
+    count = cursor.fetchone()[0]
+    conn.close()
+    print(count)
+except:
+    conn.close()
+    print('0')
+" 2>/dev/null)
+
+if [[ "$DB_OK" == "0" || -z "$DB_OK" ]]; then
+  echo "  [FAIL] Database 'users' table inaccessible (0 users)"
+  exit 1
+fi
+echo "  [PASS] Database integrity: $DB_OK user(s)"
+PASS=$((PASS + 1)); TOTAL=$((TOTAL + 1))
+
 # Auth
 echo ""
 echo "Auth"
@@ -152,10 +200,69 @@ echo "Proxy"
 check "Proxy POST login" "$(curl -s -o /dev/null -w '%{http_code}' -X POST $FRONTEND/v3/auth/login -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin123"}')" "200"
 check "Proxy GET agents" "$(curl -s -o /dev/null -w '%{http_code}' $FRONTEND/v3/agents)" "200"
 
+# Intelligence pages — verify they return data (not empty)
+echo ""
+echo "Intelligence"
+
+# Knowledge Base endpoint — test that it's registered (not 404)
+KB_STATUS=$(curl -s -o /dev/null -w '%{http_code}' $BACKEND/v3/data/knowledge/stats)
+if [[ "$KB_STATUS" == "404" ]]; then
+  echo "  [FAIL] Knowledge Base endpoint missing (HTTP 404)"
+  FAIL=$((FAIL + 1))
+else
+  echo "  [PASS] Knowledge Base endpoint registered (HTTP $KB_STATUS)"
+  PASS=$((PASS + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# memnon.db exists
+if [[ -f /home/node/.openclaw/workspace-main/claw-portal/backend/memnon/memnon.db ]]; then
+  DB_SIZE=$(stat -c%s /home/node/.openclaw/workspace-main/claw-portal/backend/memnon/memnon.db 2>/dev/null)
+  echo "  [PASS] memnon.db exists ($DB_SIZE bytes)"
+  PASS=$((PASS + 1))
+else
+  echo "  [FAIL] memnon.db not found — recreate or check symlink"
+  FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# Wiki stats — must return non-zero total after compile
+WIKI_TOTAL=$(curl -s $BACKEND/v3/wiki/stats | python3 -c "import sys,json; print(json.load(sys.stdin).get('total',0))" 2>/dev/null)
+if [[ "$WIKI_TOTAL" == "0" || -z "$WIKI_TOTAL" ]]; then
+  echo "  [FAIL] Wiki stats total=0 — check wiki.py WIKI_DIR path + run 'openclaw wiki compile'"
+  FAIL=$((FAIL + 1))
+else
+  echo "  [PASS] Wiki stats: $WIKI_TOTAL pages"
+  PASS=$((PASS + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# Memory files — must return at least 1 file
+MEM_COUNT=$(curl -s $BACKEND/v3/memory/files | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('files',d.get('items',[]))) )" 2>/dev/null)
+if [[ "$MEM_COUNT" == "0" || -z "$MEM_COUNT" ]]; then
+  echo "  [FAIL] Memory files: 0 found (expected >= 1)"
+  FAIL=$((FAIL + 1))
+else
+  echo "  [PASS] Memory files: $MEM_COUNT"
+  PASS=$((PASS + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# Config editor — must return valid JSON with 'agents' key
+CONFIG_OK=$(curl -s $BACKEND/v3/config | python3 -c "import sys,json; d=json.load(sys.stdin); print('agents' in d)" 2>/dev/null)
+if [[ "$CONFIG_OK" == "True" ]]; then
+  echo "  [PASS] Config editor returns valid data"
+  PASS=$((PASS + 1))
+else
+  echo "  [FAIL] Config editor returns invalid data"
+  FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
 # Build check
 echo ""
 echo "Build"
-if [[ -f /home/node/.openclaw/workspace-main/memnew/claw-portal/frontend/dist/index.html ]]; then
+if [[ -f /home/node/.openclaw/workspace-main/claw-portal/frontend/dist/index.html ]]; then
   echo "  [PASS] dist/ exists"
   PASS=$((PASS + 1))
 else

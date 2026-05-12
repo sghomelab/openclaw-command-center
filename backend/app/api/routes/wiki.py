@@ -9,7 +9,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 router = APIRouter(prefix="/v3", tags=["LLM Wiki"])
 
-WIKI_DIR = pathlib.Path("/home/node/.openclaw/workspace-main/llm-wiki")
+WIKI_DIR = pathlib.Path("/home/node/.openclaw/knowledge-vault/main")
 RAW_DIR = WIKI_DIR / "raw"
 INDEX_FILE = WIKI_DIR / "index.md"
 LOG_FILE = WIKI_DIR / "log.md"
