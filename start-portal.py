@@ -36,6 +36,7 @@ def start_backend():
         stderr=subprocess.STDOUT,
         bufsize=1,
         universal_newlines=True,
+        env=os.environ,
     )
     
     # Stream backend output

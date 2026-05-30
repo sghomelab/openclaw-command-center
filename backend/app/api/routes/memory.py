@@ -1,6 +1,8 @@
-"""Memory explorer routes — search MEMORY.md and daily files."""
+"""Memory explorer routes — search MEMORY.md and daily files via QMD."""
 import os
 import re
+import subprocess
+import json
 from datetime import datetime
 from fastapi import APIRouter, Query
 
@@ -8,14 +10,48 @@ router = APIRouter(prefix="/v3", tags=["Memory"])
 
 MEMORY_DIR = os.path.expanduser("~/.openclaw/workspace-main/memory")
 MEMORY_FILE = os.path.expanduser("~/.openclaw/workspace-main/MEMORY.md")
+QMD_BIN = "/home/node/.openclaw/qmd/bin/qmd"
+
+
+def _qmd_search(query: str, max_results: int = 50) -> list:
+    """Search memory via QMD index (keyword + semantic)."""
+    results = []
+    # Search memory collection
+    for collection in ["memory", "root-files"]:
+        try:
+            proc = subprocess.run(
+                [QMD_BIN, "search", query, "-c", collection, "--keyword", "-j", "--", "-l", str(max_results)],
+                capture_output=True, text=True, timeout=10,
+                cwd=os.path.expanduser("~/.openclaw/workspace-main")
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                for item in json.loads(proc.stdout):
+                    results.append({
+                        "file": item.get("path", "").split("/")[-1],
+                        "path": item.get("path", ""),
+                        "match": item.get("snippet", ""),
+                        "context": item.get("snippet", ""),
+                        "score": item.get("score", 0),
+                        "collection": item.get("collection", collection),
+                    })
+        except Exception:
+            pass
+    # Deduplicate by file+match
+    seen = set()
+    unique = []
+    for r in results:
+        key = (r["file"], r["match"][:50])
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique[:max_results]
 
 
 def _search_files(query: str, max_results: int = 50) -> list:
-    """Search memory files for matching content."""
+    """Search memory files for matching content (regex fallback)."""
     results = []
     files_to_search = [MEMORY_FILE]
 
-    # Add all daily files
     if os.path.isdir(MEMORY_DIR):
         for fname in sorted(os.listdir(MEMORY_DIR)):
             if fname.endswith(".md"):
@@ -30,7 +66,6 @@ def _search_files(query: str, max_results: int = 50) -> list:
 
             for i, line in enumerate(lines):
                 if re.search(re.escape(query), line, re.IGNORECASE):
-                    # Get context (3 lines before and after)
                     context_start = max(0, i - 3)
                     context_end = min(len(lines), i + 4)
                     context = "".join(lines[context_start:context_end]).strip()
@@ -100,8 +135,10 @@ def _read_file(filepath: str) -> dict:
 
 @router.get("/memory/search")
 async def search_memory(q: str = Query(..., min_length=1)):
-    """Search memory files for matching content."""
-    results = _search_files(q)
+    """Search memory files — QMD first, regex fallback."""
+    results = _qmd_search(q)
+    if not results:
+        results = _search_files(q)
     return {"query": q, "results": results, "total": len(results)}
 
 
@@ -119,3 +156,27 @@ async def read_memory_file(file_path: str):
     if not file_path.startswith("/"):
         file_path = os.path.join(MEMORY_DIR, file_path)
     return _read_file(file_path)
+
+
+@router.get("/memory/sessions/search")
+async def search_sessions(q: str = Query(..., min_length=1), limit: int = Query(20, ge=1, le=100)):
+    """Search session transcripts via QMD index."""
+    results = []
+    try:
+        proc = subprocess.run(
+            [QMD_BIN, "search", q, "-c", "sessions", "-j", "--", "-l", str(limit)],
+            capture_output=True, text=True, timeout=15,
+            cwd=os.path.expanduser("~/.openclaw/workspace-main")
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            for item in json.loads(proc.stdout):
+                results.append({
+                    "file": item.get("path", "").split("/")[-1],
+                    "path": item.get("path", ""),
+                    "match": item.get("snippet", ""),
+                    "context": item.get("snippet", ""),
+                    "score": item.get("score", 0),
+                })
+    except Exception:
+        pass
+    return {"query": q, "results": results, "total": len(results)}
