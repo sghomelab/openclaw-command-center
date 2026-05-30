@@ -12,12 +12,14 @@ from app.core.security import (
 from app.schemas.user import LoginRequest, RefreshRequest, TokenResponse, UserResponse
 from app.api.dependencies import get_current_user
 from app.config import settings
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/v3/auth", tags=["Authentication"])
 
 
 @router.post("/login")
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, req: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.username == req.username))
     user = result.scalar_one_or_none()
     if not user or not verify_password(req.password, user.password_hash):
@@ -37,7 +39,8 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh")
-async def refresh(req: RefreshRequest):
+@limiter.limit("20/minute")
+async def refresh(request: Request, req: RefreshRequest):
     payload = decode_token(req.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid refresh token")
